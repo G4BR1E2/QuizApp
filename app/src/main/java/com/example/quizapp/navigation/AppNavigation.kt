@@ -1,18 +1,38 @@
 package com.example.quizapp.navigation
 
-import android.graphics.drawable.Icon
-import android.media.Image
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Quiz
-import androidx.compose.material.icons.filled.Topic
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.vector.ImageVector
 
-class NavDestination(val title: String, val route: String, val icon: ImageVector) {
-    companion object {
-        val Home = NavDestination(title = "Home", route = "home_screen", icon = Icons.Filled.Home)
-        val Topics = NavDestination(title = "Topics", route = "topics_screen", icon = Icons.Filled.Topic)
-        val Quiz = NavDestination(title = "Quiz", route = "quiz_screen", icon = Icons.Filled.Quiz)
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import com.example.quizapp.ui.screens.home.HomeScreen
+import com.example.quizapp.ui.screens.quiz.ChooseQuizTopicScreen
+import com.example.quizapp.ui.screens.topics.TopicsScreen
+import kotlinx.serialization.Serializable
+
+
+
+@Serializable
+object HomeRoute
+@Serializable
+object TopicsRoute
+@Serializable
+object QuizRoute
+
+@Composable
+fun AppNavigation(
+    modifier: Modifier = Modifier,
+    navController: NavHostController,
+    startDestination: Any = HomeRoute
+) {
+    NavHost(
+        navController = navController,
+        startDestination = startDestination,
+        modifier = modifier
+    ) {
+        composable<HomeRoute> { HomeScreen(home = HomeRoute) }
+        composable<TopicsRoute> { TopicsScreen(topic = TopicsRoute) }
+        composable<QuizRoute> { ChooseQuizTopicScreen(quiz = QuizRoute) }
     }
 }
