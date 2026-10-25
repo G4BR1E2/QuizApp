@@ -1,10 +1,6 @@
 package com.example.quizapp.ui.screens.home
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Quiz
-import androidx.compose.material.icons.filled.Topic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -13,25 +9,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.compose.rememberNavController
 import com.example.quizapp.navigation.AppNavigation
 import com.example.quizapp.navigation.Destination
 import com.example.quizapp.navigation.HomeRoute
-import com.example.quizapp.navigation.QuizRoute
-import com.example.quizapp.navigation.TopicsRoute
+import com.example.quizapp.viewmodel.QuizViewModel
 
 @Composable
-fun HomeScreen(home: HomeRoute, modifier: Modifier = Modifier) {
+fun HomeScreen(home: HomeRoute, viewModel: QuizViewModel, modifier: Modifier = Modifier) {
 
 }
 
 @Composable
-fun NavBar(modifier: Modifier = Modifier) {
+fun NavBar(modifier: Modifier = Modifier, viewModel: QuizViewModel) {
     val navController = rememberNavController()
     var selectedDestination by rememberSaveable { mutableIntStateOf(Destination.HOME.id) }
 
@@ -59,6 +52,7 @@ fun NavBar(modifier: Modifier = Modifier) {
         }
     ) { contentPadding ->
         AppNavigation(
+            viewModel = viewModel,
             navController = navController,
             startDestination = Destination.HOME.route,
             modifier = modifier.padding(contentPadding))

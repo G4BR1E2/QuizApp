@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import com.example.quizapp.ui.screens.home.HomeScreen
 import com.example.quizapp.ui.screens.quiz.ChooseQuizTopicScreen
 import com.example.quizapp.ui.screens.topics.TopicsScreen
+import com.example.quizapp.viewmodel.QuizViewModel
 import kotlinx.serialization.Serializable
 
 enum class Destination(val id: Int, val title: String, val route: Any, val icon: ImageVector) {
@@ -31,6 +32,7 @@ object QuizRoute
 
 @Composable
 fun AppNavigation(
+    viewModel: QuizViewModel,
     modifier: Modifier = Modifier,
     navController: NavHostController,
     startDestination: Any = HomeRoute
@@ -40,8 +42,8 @@ fun AppNavigation(
         startDestination = startDestination,
         modifier = modifier
     ) {
-        composable<HomeRoute> { HomeScreen(home = HomeRoute) }
-        composable<TopicsRoute> { TopicsScreen(topic = TopicsRoute) }
-        composable<QuizRoute> { ChooseQuizTopicScreen(quiz = QuizRoute) }
+        composable<HomeRoute> { HomeScreen(home = HomeRoute, viewModel = viewModel) }
+        composable<TopicsRoute> { TopicsScreen(topic = TopicsRoute, viewModel = viewModel) }
+        composable<QuizRoute> { ChooseQuizTopicScreen(quiz = QuizRoute, viewModel = viewModel) }
     }
 }
