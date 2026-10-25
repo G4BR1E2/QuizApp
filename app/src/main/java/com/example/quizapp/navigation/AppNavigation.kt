@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.quizapp.ui.screens.home.HomeScreen
 import com.example.quizapp.ui.screens.quiz.ChooseQuizTopicScreen
+import com.example.quizapp.ui.screens.topicQuestions.TopicQuestionsScreen
 import com.example.quizapp.ui.screens.topics.TopicsScreen
 import com.example.quizapp.viewmodel.QuizViewModel
 import kotlinx.serialization.Serializable
@@ -29,6 +30,8 @@ object HomeRoute
 object TopicsRoute
 @Serializable
 object QuizRoute
+@Serializable
+object TopicQuestionsRoute
 
 @Composable
 fun AppNavigation(
@@ -43,7 +46,14 @@ fun AppNavigation(
         modifier = modifier
     ) {
         composable<HomeRoute> { HomeScreen(home = HomeRoute, viewModel = viewModel) }
-        composable<TopicsRoute> { TopicsScreen(topic = TopicsRoute, viewModel = viewModel) }
+        composable<TopicsRoute> {
+            TopicsScreen(
+                topic = TopicsRoute,
+                viewModel = viewModel,
+                onNavigateToTopicQuestions = { navController.navigate(route = TopicQuestionsRoute) }
+            )
+        }
         composable<QuizRoute> { ChooseQuizTopicScreen(quiz = QuizRoute, viewModel = viewModel) }
+        composable<TopicQuestionsRoute> { TopicQuestionsScreen(topicQuestions = TopicQuestionsRoute, viewModel = viewModel) }
     }
 }

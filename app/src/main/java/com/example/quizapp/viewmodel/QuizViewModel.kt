@@ -27,9 +27,23 @@ class QuizViewModel : ViewModel() {
     val isOpenDeleteTopicDialog: MutableState<Boolean> = _isOpenDeleteTopicDialog
 
 
+    private val _isOpenEditTopicDialog = mutableStateOf(false)
+    val isOpenEditTopicDialog: MutableState<Boolean> = _isOpenEditTopicDialog
+
+
     private val _selectedTopic = mutableStateOf<Topic>(Topic(-1, "", null))
     val selectedTopic: MutableState<Topic> = _selectedTopic
 
+
+    private val _isOpenNewTopicQuestionDialog = mutableStateOf(false)
+    val isOpenNewTopicQuestionDialog: MutableState<Boolean> = _isOpenNewTopicQuestionDialog
+
+
+    fun updateTopic(updatedTopic: Topic) {
+        val index = _topics.indexOf(_selectedTopic.value)
+        if (index != -1)
+            _topics[index] = updatedTopic
+    }
 
     fun addTopic(topic: Topic) {
         _topics.add(topic)

@@ -34,11 +34,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.quizapp.data.model.Topic
 import com.example.quizapp.database.QuizDatabase
+import com.example.quizapp.navigation.AppNavigation
 import com.example.quizapp.navigation.TopicsRoute
 import com.example.quizapp.viewmodel.QuizViewModel
 
 @Composable
-fun TopicsScreen(topic: TopicsRoute, viewModel: QuizViewModel) {
+fun TopicsScreen(topic: TopicsRoute, viewModel: QuizViewModel, onNavigateToTopicQuestions: () -> Unit) {
     Scaffold(floatingActionButton = {
         ExtendedFloatingActionButton(
             modifier = Modifier,
@@ -47,12 +48,15 @@ fun TopicsScreen(topic: TopicsRoute, viewModel: QuizViewModel) {
             text = { Text("Add topic") }
         )
     }) { padding ->
-        TopicList(viewModel = viewModel, modifier = Modifier.padding(padding))
+        TopicList(viewModel = viewModel, modifier = Modifier.padding(padding), onTopicClick = onNavigateToTopicQuestions)
         if (viewModel.isOpenNewTopicDialog.value) {
             NewTopicDialog(viewModel) { viewModel.isOpenNewTopicDialog.value = false }
         }
         if (viewModel.isOpenDeleteTopicDialog.value) {
             DeleteTopicDialog(viewModel) { viewModel.isOpenDeleteTopicDialog.value = false }
+        }
+        if (viewModel.isOpenEditTopicDialog.value) {
+            EditTopicDialog(viewModel) { viewModel.isOpenEditTopicDialog.value = false }
         }
     }
 }
@@ -77,7 +81,7 @@ fun DeleteTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
                 )
                 Text(
                     fontSize = 24.sp,
-                    text = "Are you sure you want to delete the topic?",
+                    text = "Are you sure you want to delete the ${viewModel.selectedTopic.value.name} topic?",
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
@@ -89,6 +93,64 @@ fun DeleteTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
 
                     TextButton(onClick = {
                         viewModel.deleteTopic(viewModel.selectedTopic.value)
+                        database.saveData(viewModel.topics, viewModel.topicQuestions)
+                        onDismissRequest()
+                    }) {
+                        Text("Confirm")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EditTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
+    val topicNameTextFieldState = rememberTextFieldState(viewModel.selectedTopic.value.name)
+    val topicDescriptionTextFieldState = rememberTextFieldState(viewModel.selectedTopic.value.description ?: "")
+    val database = QuizDatabase(LocalContext.current)
+
+    Dialog(onDismissRequest = {}) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Text(
+                    fontSize = 24.sp,
+                    text = "Enter a new topic",
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                OutlinedTextField(
+                    state = topicNameTextFieldState,
+                    label = { Text("Topic name") },
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                OutlinedTextField(
+                    state = topicDescriptionTextFieldState,
+                    label = { Text("Topic description (optional)") },
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismissRequest) {
+                        Text("Cancel")
+                    }
+
+                    TextButton(onClick = {
+                        val updatedTopic = viewModel.selectedTopic.value.copy(
+                            name = topicNameTextFieldState.text.toString(),
+                            description = topicDescriptionTextFieldState.text.toString()
+                        )
+                        viewModel.updateTopic(updatedTopic)
                         database.saveData(viewModel.topics, viewModel.topicQuestions)
                         onDismissRequest()
                     }) {
@@ -162,20 +224,19 @@ fun NewTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun TopicList(viewModel: QuizViewModel, modifier: Modifier = Modifier) {
+fun TopicList(viewModel: QuizViewModel, modifier: Modifier = Modifier, onTopicClick: () -> Unit) {
     LazyColumn() {
         items(viewModel.topics) { topic ->
-            TopicCard(topic = topic, viewModel = viewModel)
+            TopicCard(topic = topic, viewModel = viewModel, onClick = onTopicClick)
         }
     }
 }
 
 @Composable
-fun TopicCard(modifier: Modifier = Modifier, topic: Topic, viewModel: QuizViewModel) {
+fun TopicCard(modifier: Modifier = Modifier, topic: Topic, viewModel: QuizViewModel, onClick: () -> Unit) {
     ElevatedCard(
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 6.dp
-        ),
+        onClick = onClick,
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
@@ -196,7 +257,10 @@ fun TopicCard(modifier: Modifier = Modifier, topic: Topic, viewModel: QuizViewMo
 
                 Row() {
                     IconButton(
-                        onClick = {},
+                        onClick = {
+                            viewModel.isOpenEditTopicDialog.value = true
+                            viewModel.selectedTopic.value = topic
+                        },
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Icon(
