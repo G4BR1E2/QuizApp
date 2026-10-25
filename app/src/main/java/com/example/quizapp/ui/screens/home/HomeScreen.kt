@@ -20,15 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.compose.rememberNavController
 import com.example.quizapp.navigation.AppNavigation
+import com.example.quizapp.navigation.Destination
 import com.example.quizapp.navigation.HomeRoute
 import com.example.quizapp.navigation.QuizRoute
 import com.example.quizapp.navigation.TopicsRoute
-
-enum class Destination(val id: Int, val title: String, val route: Any, val icon: ImageVector) {
-    HOME(title = "Home", route = HomeRoute, icon = Icons.Filled.Home, id = 1),
-    TOPICS(title = "Topics", route = TopicsRoute, icon = Icons.Filled.Topic, id = 2),
-    QUIZ(title = "Quiz", route = QuizRoute, icon = Icons.Filled.Quiz, id = 3)
-}
 
 @Composable
 fun HomeScreen(home: HomeRoute, modifier: Modifier = Modifier) {

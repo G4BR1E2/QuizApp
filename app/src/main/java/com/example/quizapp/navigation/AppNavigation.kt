@@ -1,8 +1,13 @@
 package com.example.quizapp.navigation
 
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Quiz
+import androidx.compose.material.icons.filled.Topic
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -11,7 +16,11 @@ import com.example.quizapp.ui.screens.quiz.ChooseQuizTopicScreen
 import com.example.quizapp.ui.screens.topics.TopicsScreen
 import kotlinx.serialization.Serializable
 
-
+enum class Destination(val id: Int, val title: String, val route: Any, val icon: ImageVector) {
+    HOME(title = "Home", route = HomeRoute, icon = Icons.Filled.Home, id = 1),
+    TOPICS(title = "Topics", route = TopicsRoute, icon = Icons.Filled.Topic, id = 2),
+    QUIZ(title = "Quiz", route = QuizRoute, icon = Icons.Filled.Quiz, id = 3)
+}
 
 @Serializable
 object HomeRoute
