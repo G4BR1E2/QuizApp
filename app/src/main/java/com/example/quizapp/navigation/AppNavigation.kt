@@ -54,6 +54,12 @@ fun AppNavigation(
             )
         }
         composable<QuizRoute> { ChooseQuizTopicScreen(quiz = QuizRoute, viewModel = viewModel) }
-        composable<TopicQuestionsRoute> { TopicQuestionsScreen(topicQuestions = TopicQuestionsRoute, viewModel = viewModel) }
+        composable<TopicQuestionsRoute> {
+            TopicQuestionsScreen(
+                topicQuestions = TopicQuestionsRoute,
+                viewModel = viewModel,
+                navController = navController
+            )
+        }
     }
 }

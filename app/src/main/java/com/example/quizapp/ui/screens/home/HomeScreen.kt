@@ -8,11 +8,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.quizapp.navigation.AppNavigation
 import com.example.quizapp.navigation.Destination
 import com.example.quizapp.navigation.HomeRoute
@@ -24,20 +25,28 @@ fun HomeScreen(home: HomeRoute, viewModel: QuizViewModel, modifier: Modifier = M
 }
 
 @Composable
-fun NavBar(modifier: Modifier = Modifier, viewModel: QuizViewModel) {
-    val navController = rememberNavController()
-    var selectedDestination by rememberSaveable { mutableIntStateOf(Destination.HOME.id) }
+fun NavBar(modifier: Modifier = Modifier, viewModel: QuizViewModel, navController: NavHostController) {
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val selectedDestination = backStackEntry?.destination
 
     Scaffold(
         modifier = modifier,
         bottomBar = {
             NavigationBar() {
                 Destination.entries.forEach { destination ->
+                    val selected = selectedDestination?.hierarchy?.any {
+                        it.hasRoute(destination.route::class)
+                    } == true
                     NavigationBarItem(
-                        selected = destination.id == selectedDestination,
+                        selected = selected,
                         onClick = {
-                            navController.navigate(route = destination.route)
-                            selectedDestination = destination.id
+                            navController.navigate(route = destination.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         },
                         icon = {
                             Icon(

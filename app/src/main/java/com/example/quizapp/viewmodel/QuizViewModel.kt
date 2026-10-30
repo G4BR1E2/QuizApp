@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.lifecycle.ViewModel
 import com.example.quizapp.data.model.Question
+import com.example.quizapp.data.model.QuestionType
 import com.example.quizapp.data.model.Topic
 
 class QuizViewModel : ViewModel() {
@@ -37,6 +38,10 @@ class QuizViewModel : ViewModel() {
 
     private val _isOpenNewTopicQuestionDialog = mutableStateOf(false)
     val isOpenNewTopicQuestionDialog: MutableState<Boolean> = _isOpenNewTopicQuestionDialog
+
+
+    private val _selectedQuestionType = mutableStateOf(QuestionType.FILL_IN)
+    val selectedQuestionType: MutableState<QuestionType> = _selectedQuestionType
 
 
     fun updateTopic(updatedTopic: Topic) {

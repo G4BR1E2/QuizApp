@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
-enum class QuestionType(name: String) {
+enum class QuestionType(val text: String) {
     FILL_IN("Fill in"),
     MULTIPLE_CHOICE("Multiple choice")
 }

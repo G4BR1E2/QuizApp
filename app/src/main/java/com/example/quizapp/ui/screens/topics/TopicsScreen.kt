@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -235,7 +236,10 @@ fun TopicList(viewModel: QuizViewModel, modifier: Modifier = Modifier, onTopicCl
 @Composable
 fun TopicCard(modifier: Modifier = Modifier, topic: Topic, viewModel: QuizViewModel, onClick: () -> Unit) {
     ElevatedCard(
-        onClick = onClick,
+        onClick = {
+            viewModel.selectedTopic.value = topic
+            onClick()
+        },
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer

@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.rememberNavController
 import com.example.quizapp.database.QuizDatabase
 import com.example.quizapp.ui.screens.home.NavBar
 import com.example.quizapp.ui.theme.QuizAppTheme
@@ -27,8 +28,9 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun QuizApp(viewModel: QuizViewModel) {
+    val navController = rememberNavController()
     val database = QuizDatabase(LocalContext.current)
     viewModel.fillTopics(database.getData().topics)
     viewModel.fillTopicQuestions(database.getData().questions)
-    NavBar(viewModel = viewModel)
+    NavBar(viewModel = viewModel, navController = navController)
 }
