@@ -23,6 +23,11 @@ class QuizDatabase(private val context: Context) {
     fun getData(): QuizData {
         if (!file.exists())
             return QuizData(mutableListOf(), mutableMapOf())
-        return Json.decodeFromString(file.readText())
+
+        val fileText = file.readText()
+        if (fileText.isBlank())
+            return QuizData(mutableListOf(), mutableMapOf())
+
+        return Json.decodeFromString(fileText)
     }
 }

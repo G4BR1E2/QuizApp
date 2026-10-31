@@ -47,16 +47,15 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.example.quizapp.data.model.Question
 import com.example.quizapp.data.model.QuestionType
-import com.example.quizapp.database.QuizDatabase
 import com.example.quizapp.navigation.TopicQuestionsRoute
 import com.example.quizapp.viewmodel.QuizViewModel
 
@@ -69,7 +68,7 @@ fun TopicQuestionsScreen(topicQuestions: TopicQuestionsRoute, viewModel: QuizVie
         floatingActionButton = {
         ExtendedFloatingActionButton(
             modifier = Modifier,
-            onClick = { viewModel.isOpenNewTopicQuestionDialog.value = true },
+            onClick = { viewModel.onOpenNewTopicQuestionDialog() },
             icon = { Icon(Icons.Filled.Add, "Add topic")},
             text = { Text("Add question") }
         )
@@ -77,7 +76,7 @@ fun TopicQuestionsScreen(topicQuestions: TopicQuestionsRoute, viewModel: QuizVie
         QuestionList(viewModel, modifier = Modifier.padding(padding))
         if (viewModel.isOpenNewTopicQuestionDialog.value) {
             NewQuestionDialog(viewModel) {
-                viewModel.isOpenNewTopicQuestionDialog.value = false
+                viewModel.onCloseNewTopicQuestionDialog()
             }
         }
     }
@@ -109,9 +108,12 @@ fun TopicQuestionsTopAppBar(viewModel: QuizViewModel, navController: NavControll
 @Composable
 fun NewQuestionDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
     val questionTextTextFieldState = rememberTextFieldState()
-    val database = QuizDatabase(LocalContext.current)
+    val topicQuestion = Question(-1, -1, "", QuestionType.FILL_IN, emptyList(), "")
 
-    Dialog(onDismissRequest = {}) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(dismissOnBackPress = true)
+    ) {
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface
@@ -254,7 +256,7 @@ fun FillInQuestion() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuestionTypeDropdownMenu(viewModel: QuizViewModel, input: @Composable (() -> Unit)) {
+fun QuestionTypeDropdownMenu(viewModel: QuizViewModel, inputForm: @Composable (() -> Unit)) {
     val expanded = rememberSaveable { mutableStateOf(false) }
     val questionTypeTextFieldState = rememberTextFieldState(QuestionType.FILL_IN.text)
 
@@ -280,7 +282,7 @@ fun QuestionTypeDropdownMenu(viewModel: QuizViewModel, input: @Composable (() ->
                     text = { Text(text = type.text) },
                     onClick = {
                         questionTypeTextFieldState.edit { replace(0, questionTypeTextFieldState.text.length, type.text) }
-                        viewModel.selectedQuestionType.value = type
+                        viewModel.setSelectedQuestionType(type)
                         expanded.value = false
                     }
                 )
@@ -288,7 +290,7 @@ fun QuestionTypeDropdownMenu(viewModel: QuizViewModel, input: @Composable (() ->
         }
     }
 
-    input()
+    inputForm()
 }
 
 @Composable
