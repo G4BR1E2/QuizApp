@@ -2,8 +2,8 @@ package com.example.quizapp.viewmodel
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -17,11 +17,11 @@ import com.example.quizapp.database.QuizDatabase
 class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
 
     private val _topics = mutableStateListOf<Topic>()
-    val topics: List<Topic> = _topics
+    val topics: SnapshotStateList<Topic> = _topics
 
 
-    private val _topicQuestions = mutableStateMapOf<Int, MutableList<Question>>()
-    val topicQuestions: Map<Int, List<Question>> = _topicQuestions
+    private val _questions = mutableStateListOf<Question>()
+    val questions: SnapshotStateList<Question> = _questions
 
     init {
         val data = quizDatabase.getData()
@@ -46,8 +46,8 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
     val selectedQuestionType: State<QuestionType> = _selectedQuestionType
 
 
-    private val _topicQuestion = mutableStateOf(Question(-1, -1, "", QuestionType.FILL_IN, null, ""))
-    val topicQuestion: State<Question> = _topicQuestion
+    private val _question = mutableStateOf(Question(-1, -1, "", QuestionType.FILL_IN, null, ""))
+    val question: State<Question> = _question
 
 
     private val _isOpenNewTopicDialog = mutableStateOf(false)
@@ -100,8 +100,8 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
         _isOpenNewTopicQuestionDialog.value = false
     }
 
-    fun setQuestion() {
-
+    fun setQuestion(question: Question) {
+        _question.value = question
     }
 
     fun setSelectedQuestionType(type: QuestionType) {
@@ -113,7 +113,7 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
     }
 
     private fun saveData() {
-        quizDatabase.saveData(_topics, _topicQuestions)
+        quizDatabase.saveData(_topics, _questions)
     }
 
     fun updateTopic(updatedTopic: Topic) {
@@ -134,13 +134,13 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
         saveData()
     }
 
-    fun addTopicQuestion(topicId: Int, question: Question) {
-        _topicQuestions[topicId]?.add(question)
+    fun addTopicQuestion(question: Question) {
+        _questions.add(question)
         saveData()
     }
 
-    fun deleteTopicQuestion(topicId: Int, question: Question) {
-        _topicQuestions[topicId]?.remove(question)
+    fun deleteTopicQuestion(question: Question) {
+        _questions.remove(question)
         saveData()
     }
 
@@ -149,8 +149,8 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
         _topics.addAll(topics)
     }
 
-    fun fillTopicQuestions(topicQuestions: MutableMap<Int, MutableList<Question>>) {
-        _topicQuestions.clear()
-        _topicQuestions.putAll(topicQuestions)
+    fun fillTopicQuestions(questions: List<Question>) {
+        _questions.clear()
+        _questions.addAll(questions)
     }
 }

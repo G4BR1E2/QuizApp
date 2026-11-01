@@ -8,13 +8,13 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 @Serializable
-data class QuizData(val topics: MutableList<Topic>, val questions: MutableMap<Int, MutableList<Question>>)
+data class QuizData(val topics: MutableList<Topic>, val questions: MutableList<Question>)
 
 class QuizDatabase(private val context: Context) {
 
     private val file = File(context.filesDir, "quiz_data.json")
 
-    fun saveData(topics: MutableList<Topic>, questions: MutableMap<Int, MutableList<Question>>) {
+    fun saveData(topics: MutableList<Topic> = mutableListOf(), questions: MutableList<Question> = mutableListOf()) {
         val data = QuizData(topics, questions)
         val json = Json.encodeToString(data)
         file.writeText(json)
@@ -22,11 +22,11 @@ class QuizDatabase(private val context: Context) {
 
     fun getData(): QuizData {
         if (!file.exists())
-            return QuizData(mutableListOf(), mutableMapOf())
+            return QuizData(mutableListOf(), mutableListOf())
 
         val fileText = file.readText()
         if (fileText.isBlank())
-            return QuizData(mutableListOf(), mutableMapOf())
+            return QuizData(mutableListOf(), mutableListOf())
 
         return Json.decodeFromString(fileText)
     }

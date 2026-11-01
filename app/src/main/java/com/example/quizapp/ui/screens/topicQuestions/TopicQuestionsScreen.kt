@@ -3,10 +3,16 @@ package com.example.quizapp.ui.screens.topicQuestions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fitInside
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
+import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -18,10 +24,13 @@ import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.text.input.setTextAndSelectAll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -46,7 +55,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -138,8 +150,8 @@ fun NewQuestionDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
 
                 QuestionTypeDropdownMenu(viewModel) {
                     when (viewModel.selectedQuestionType.value) {
-                        QuestionType.FILL_IN -> FillInQuestion()
-                        QuestionType.MULTIPLE_CHOICE -> MultipleChoiceQuestion()
+                        QuestionType.FILL_IN -> FillInQuestion(viewModel, questionTextTextFieldState.text.trim().toString())
+                        QuestionType.MULTIPLE_CHOICE -> MultipleChoiceQuestion(viewModel, questionTextTextFieldState.text.trim().toString())
                     }
                 }
 
@@ -152,7 +164,8 @@ fun NewQuestionDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
                     }
 
                     TextButton(onClick = {
-
+                        viewModel.addTopicQuestion(viewModel.question.value)
+                        onDismissRequest()
                     }) {
                         Text("Confirm")
                     }
@@ -163,11 +176,23 @@ fun NewQuestionDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun MultipleChoiceQuestion() {
+fun MultipleChoiceQuestion(viewModel: QuizViewModel, questionText: String) {
     val choices = rememberSaveable { mutableStateListOf<String>() }
     val newChoiceTextFieldState = rememberTextFieldState("")
     val questionAnswer = rememberSaveable { mutableStateOf("") }
     val questionAnswerTextFieldState = rememberTextFieldState()
+
+    val nextQuestionId = viewModel.questions.filter { it.id == viewModel.selectedTopic.value.id }.maxBy { it.id }.id + 1
+    viewModel.setQuestion(
+        Question(
+            id = nextQuestionId,
+            topicId = viewModel.selectedTopic.value.id,
+            questionText = questionText,
+            type = viewModel.selectedQuestionType.value,
+            options = choices,
+            correctAnswer = questionAnswer.value
+        )
+    )
 
     if (questionAnswer.value != "") {
         OutlinedTextField(
@@ -237,8 +262,19 @@ fun MultipleChoiceQuestion() {
 }
 
 @Composable
-fun FillInQuestion() {
+fun FillInQuestion(viewModel: QuizViewModel, questionText: String) {
     val questionAnswerTextFieldState = rememberTextFieldState("")
+    val nextQuestionId = if (viewModel.questions.isEmpty()) 1 else viewModel.questions.maxBy { it.topicId }.topicId + 1
+    viewModel.setQuestion(
+        Question(
+            id = nextQuestionId,
+            topicId = viewModel.selectedTopic.value.id,
+            questionText = questionText,
+            type = viewModel.selectedQuestionType.value,
+            correctAnswer = questionAnswerTextFieldState.text.trim().toString()
+        )
+    )
+
     OutlinedTextField(
         state = questionAnswerTextFieldState,
         label = { Text("Question answer") },
@@ -295,8 +331,11 @@ fun QuestionTypeDropdownMenu(viewModel: QuizViewModel, inputForm: @Composable ((
 
 @Composable
 fun QuestionList(viewModel: QuizViewModel, modifier: Modifier = Modifier) {
-    LazyColumn() {
-        items(viewModel.topicQuestions[viewModel.selectedTopic.value.id] ?: emptyList()) { question ->
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        items(viewModel.questions.filter { it.topicId == viewModel.selectedTopic.value.id }) { question ->
             QuestionCard(question = question, viewModel = viewModel)
         }
     }
@@ -313,27 +352,51 @@ fun QuestionCard(question: Question, viewModel: QuizViewModel) {
             .fillMaxWidth()
             .padding(10.dp)
     ) {
-        Column() {
-            Row() {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(modifier = Modifier.padding(start = 4.dp, top = 4.dp)) {
                 Icon(
                     Icons.Filled.QuestionMark,
                     contentDescription = "Question"
                 )
-                Text("Qeastion: ")
+                Text("Question:\n${question.questionText}")
             }
-            Row() {
+
+            if (!question.options.isNullOrEmpty()) {
+                Row(modifier = Modifier.padding(start = 4.dp)) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.List,
+                        contentDescription = "Choices"
+                    )
+                    Text("Choices:")
+                }
+                Column() {
+                    question.options!!.forEach { choice ->
+                        Row(modifier = Modifier.padding(start = 20.dp)) {
+                            Icon(
+                                Icons.Filled.RadioButtonChecked,
+                                contentDescription = "Choice"
+                            )
+                            Text(choice)
+                        }
+                    }
+                }
+            }
+
+            Row(modifier = Modifier.padding(start = 4.dp)) {
                 Icon(
-                    Icons.Filled.QuestionAnswer,
-                    contentDescription = "Question"
+                    imageVector = Icons.Filled.QuestionAnswer,
+                    contentDescription = "Question answer"
                 )
-                Text("Qeastion asnwer: ")
+                Text("Question answer:\n${question.correctAnswer}")
             }
-            Row() {
+            Row(modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)) {
                 Icon(
                     Icons.Filled.Category,
                     contentDescription = "Question type"
                 )
-                Text("Qeastion type: ")
+                Text("Question type:\n${question.type.text}")
             }
         }
     }
