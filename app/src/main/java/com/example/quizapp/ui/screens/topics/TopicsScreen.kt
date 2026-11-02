@@ -3,8 +3,11 @@ package com.example.quizapp.ui.screens.topics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,7 +41,9 @@ import com.example.quizapp.viewmodel.QuizViewModel
 
 @Composable
 fun TopicsScreen(topic: TopicsRoute, viewModel: QuizViewModel, onNavigateToTopicQuestions: () -> Unit) {
-    Scaffold(floatingActionButton = {
+    Scaffold(
+        contentWindowInsets = WindowInsets.statusBars,
+        floatingActionButton = {
         ExtendedFloatingActionButton(
             modifier = Modifier,
             onClick = { viewModel.onOpenNewTopicDialog() },
@@ -221,7 +226,9 @@ fun NewTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
 
 @Composable
 fun TopicList(viewModel: QuizViewModel, modifier: Modifier = Modifier, onTopicClick: () -> Unit) {
-    LazyColumn() {
+    LazyColumn(
+        modifier = modifier.fillMaxSize()
+    ) {
         items(viewModel.topics) { topic ->
             TopicCard(topic = topic, viewModel = viewModel, onClick = onTopicClick)
         }
@@ -251,7 +258,7 @@ fun TopicCard(modifier: Modifier = Modifier, topic: Topic, viewModel: QuizViewMo
                 Text(
                     text = topic.name,
                     fontSize = 24.sp,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp).weight(1f, fill = false)
                 )
 
                 Row() {

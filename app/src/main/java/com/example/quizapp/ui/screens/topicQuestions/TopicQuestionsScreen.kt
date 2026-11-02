@@ -1,8 +1,15 @@
 package com.example.quizapp.ui.screens.topicQuestions
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
@@ -27,6 +35,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.material.icons.filled.QuestionMark
@@ -41,6 +51,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,16 +62,28 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.paint
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -71,11 +94,14 @@ import com.example.quizapp.data.model.QuestionType
 import com.example.quizapp.navigation.TopicQuestionsRoute
 import com.example.quizapp.viewmodel.QuizViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopicQuestionsScreen(topicQuestions: TopicQuestionsRoute, viewModel: QuizViewModel, navController: NavController) {
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
+        contentWindowInsets = WindowInsets(),
         topBar = {
-            TopicQuestionsTopAppBar(viewModel = viewModel, navController = navController)
+            TopicQuestionsTopAppBar(viewModel = viewModel, navController = navController, scrollBehavior)
         },
         floatingActionButton = {
         ExtendedFloatingActionButton(
@@ -83,8 +109,9 @@ fun TopicQuestionsScreen(topicQuestions: TopicQuestionsRoute, viewModel: QuizVie
             onClick = { viewModel.onOpenNewTopicQuestionDialog() },
             icon = { Icon(Icons.Filled.Add, "Add topic")},
             text = { Text("Add question") }
-        )
-    }) { padding ->
+        )},
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+    ) { padding ->
         QuestionList(viewModel, modifier = Modifier.padding(padding))
         if (viewModel.isOpenNewTopicQuestionDialog.value) {
             NewQuestionDialog(viewModel) {
@@ -96,9 +123,10 @@ fun TopicQuestionsScreen(topicQuestions: TopicQuestionsRoute, viewModel: QuizVie
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopicQuestionsTopAppBar(viewModel: QuizViewModel, navController: NavController) {
+fun TopicQuestionsTopAppBar(viewModel: QuizViewModel, navController: NavController, scrollBehavior: TopAppBarScrollBehavior) {
     CenterAlignedTopAppBar(
-        modifier = Modifier.statusBarsPadding(),
+        modifier = Modifier,
+        scrollBehavior = scrollBehavior,
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
@@ -203,7 +231,6 @@ fun MultipleChoiceQuestion(viewModel: QuizViewModel, questionText: String) {
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             trailingIcon = {
                 IconButton(onClick = {
-                    choices.add(questionAnswer.value)
                     questionAnswer.value = ""
                 }) {
                     Icon(imageVector = Icons.Default.RemoveCircle, contentDescription = "Delete choice")
@@ -229,9 +256,7 @@ fun MultipleChoiceQuestion(viewModel: QuizViewModel, questionText: String) {
                 },
                 leadingIcon = {
                     IconButton(onClick = {
-                        if (questionAnswer.value != "") { choices.add(questionAnswer.value) }
                         questionAnswer.value = choice
-                        choices.removeAt(index)
                         questionAnswerTextFieldState.edit { replace(0, length, questionAnswer.value) }
                     }) {
                         Icon(imageVector = Icons.Default.QuestionAnswer, contentDescription = "Mark as question answer")
@@ -332,8 +357,8 @@ fun QuestionTypeDropdownMenu(viewModel: QuizViewModel, inputForm: @Composable ((
 @Composable
 fun QuestionList(viewModel: QuizViewModel, modifier: Modifier = Modifier) {
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        modifier = modifier.fillMaxSize().padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         items(viewModel.questions.filter { it.topicId == viewModel.selectedTopic.value.id }) { question ->
             QuestionCard(question = question, viewModel = viewModel)
@@ -343,60 +368,103 @@ fun QuestionList(viewModel: QuizViewModel, modifier: Modifier = Modifier) {
 
 @Composable
 fun QuestionCard(question: Question, viewModel: QuizViewModel) {
+    val expanded = rememberSaveable { mutableStateOf(false) }
+
     ElevatedCard(
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(10.dp)
+            .clickable(onClick = {expanded.value = !expanded.value})
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
     ) {
         Column(
+            modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Row(modifier = Modifier.padding(start = 4.dp, top = 4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Icon(
                     Icons.Filled.QuestionMark,
                     contentDescription = "Question"
                 )
-                Text("Question:\n${question.questionText}")
-            }
-
-            if (!question.options.isNullOrEmpty()) {
-                Row(modifier = Modifier.padding(start = 4.dp)) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.List,
-                        contentDescription = "Choices"
-                    )
-                    Text("Choices:")
-                }
-                Column() {
-                    question.options!!.forEach { choice ->
-                        Row(modifier = Modifier.padding(start = 20.dp)) {
-                            Icon(
-                                Icons.Filled.RadioButtonChecked,
-                                contentDescription = "Choice"
-                            )
-                            Text(choice)
-                        }
+                Row() {
+                    IconButton(
+                        onClick = {
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Edit,
+                            contentDescription = "Edit",
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = "DeleteTopicIcon",
+                        )
                     }
                 }
             }
+            Text(
+                modifier = Modifier,
+                text = question.questionText,
+                fontWeight = FontWeight.Black,
+                fontSize = 20.sp,
+            )
 
-            Row(modifier = Modifier.padding(start = 4.dp)) {
-                Icon(
-                    imageVector = Icons.Filled.QuestionAnswer,
-                    contentDescription = "Question answer"
-                )
-                Text("Question answer:\n${question.correctAnswer}")
-            }
-            Row(modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)) {
-                Icon(
-                    Icons.Filled.Category,
-                    contentDescription = "Question type"
-                )
-                Text("Question type:\n${question.type.text}")
+            if (expanded.value) {
+                if (!question.options.isNullOrEmpty()) {
+                    Row(modifier = Modifier) {
+                        Text(
+                            text = "Choices:",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 18.sp
+                        )
+                    }
+                    Column() {
+                        question.options!!.forEach { choice ->
+                            Row(
+                                modifier = Modifier.padding(start = 20.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    modifier = Modifier.size(height = 16.dp, width = 16.dp),
+                                    imageVector = Icons.Filled.RadioButtonChecked,
+                                    contentDescription = "Choice"
+                                )
+                                Text(modifier = Modifier.padding(start = 4.dp), text = choice)
+                            }
+                        }
+                    }
+                }
+
+                Row(modifier = Modifier) {
+                    Text(
+                        text = "Answer: ",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp
+                    )
+                    Text(text = question.correctAnswer)
+                }
+                Row(modifier = Modifier) {
+                    Text(
+                        text = "Question type: ",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp
+                    )
+                    Text(text = question.type.text)
+                }
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.example.quizapp.ui.screens.home
 
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -9,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -64,6 +66,6 @@ fun NavBar(modifier: Modifier = Modifier, viewModel: QuizViewModel, navControlle
             viewModel = viewModel,
             navController = navController,
             startDestination = Destination.HOME.route,
-            modifier = modifier.padding(contentPadding))
+            modifier = Modifier.padding(bottom = contentPadding.calculateBottomPadding()))
     }
 }
