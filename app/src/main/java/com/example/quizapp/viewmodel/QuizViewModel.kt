@@ -23,6 +23,7 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
     private val _questions = mutableStateListOf<Question>()
     val questions: SnapshotStateList<Question> = _questions
 
+
     init {
         val data = quizDatabase.getData()
         fillTopics(data.topics)
@@ -38,16 +39,13 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
         }
     }
 
+
     private val _selectedTopic = mutableStateOf(Topic(-1, "", null))
     val selectedTopic: State<Topic> = _selectedTopic
 
 
-    private val _selectedQuestionType = mutableStateOf(QuestionType.FILL_IN)
-    val selectedQuestionType: State<QuestionType> = _selectedQuestionType
-
-
-    private val _question = mutableStateOf(Question(-1, -1, "", QuestionType.FILL_IN, null, ""))
-    val question: State<Question> = _question
+    private val _selectedQuestion = mutableStateOf(Question(-1, -1, "", QuestionType.FILL_IN, null, ""))
+    val selectedQuestion: State<Question> = _selectedQuestion
 
 
     private val _isOpenNewTopicDialog = mutableStateOf(false)
@@ -62,9 +60,34 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
     val isOpenEditTopicDialog: State<Boolean> = _isOpenEditTopicDialog
 
 
-    private val _isOpenNewTopicQuestionDialog = mutableStateOf(false)
-    val isOpenNewTopicQuestionDialog: State<Boolean> = _isOpenNewTopicQuestionDialog
+    private val _isOpenNewQuestionDialog = mutableStateOf(false)
+    val isOpenNewQuestionDialog: State<Boolean> = _isOpenNewQuestionDialog
 
+
+    private val _isOpenDeleteQuestionDialog = mutableStateOf(false)
+    val isOpenDeleteQuestionDialog: State<Boolean> = _isOpenDeleteQuestionDialog
+
+    private val _isOpenEditQuestionDialog = mutableStateOf(false)
+    val isOpenEditQuestionDialog: State<Boolean> = _isOpenEditQuestionDialog
+
+
+    fun onOpenEditQuestionDialog(selectedQuestion: Question) {
+        _isOpenEditQuestionDialog.value = true
+        _selectedQuestion.value = selectedQuestion
+    }
+
+    fun onCloseEditQuestionDialog() {
+        _isOpenEditQuestionDialog.value = false
+    }
+
+    fun onOpenDeleteQuestionDialog(selectedQuestion: Question) {
+        _isOpenDeleteQuestionDialog.value = true
+        _selectedQuestion.value = selectedQuestion
+    }
+
+    fun onCloseDeleteQuestionDialog() {
+        _isOpenDeleteQuestionDialog.value = false
+    }
 
     fun onOpenNewTopicDialog() {
         _isOpenNewTopicDialog.value = true
@@ -92,20 +115,12 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
         _isOpenEditTopicDialog.value = false
     }
 
-    fun onOpenNewTopicQuestionDialog () {
-        _isOpenNewTopicQuestionDialog.value = true
+    fun onOpenNewQuestionDialog () {
+        _isOpenNewQuestionDialog.value = true
     }
 
-    fun onCloseNewTopicQuestionDialog () {
-        _isOpenNewTopicQuestionDialog.value = false
-    }
-
-    fun setQuestion(question: Question) {
-        _question.value = question
-    }
-
-    fun setSelectedQuestionType(type: QuestionType) {
-        _selectedQuestionType.value = type
+    fun onCloseNewQuestionDialog () {
+        _isOpenNewQuestionDialog.value = false
     }
 
     fun setSelectedTopic(topic: Topic) {
@@ -116,8 +131,16 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
         quizDatabase.saveData(_topics, _questions)
     }
 
+    fun updateQuestion(updatedQuestion: Question) {
+        val index = _questions.indexOfFirst { it.id == updatedQuestion.id }
+        if (index != -1) {
+            _questions[index] = updatedQuestion
+            saveData()
+        }
+    }
+
     fun updateTopic(updatedTopic: Topic) {
-        val index = _topics.indexOf(_selectedTopic.value)
+        val index = _topics.indexOfFirst { it.id == updatedTopic.id }
         if (index != -1) {
             _topics[index] = updatedTopic
             saveData()
@@ -125,7 +148,8 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
     }
 
     fun addTopic(topic: Topic) {
-        _topics.add(topic)
+        val nextTopicId = _topics.maxBy { it.id }.id + 1
+        _topics.add(topic.copy(id = nextTopicId))
         saveData()
     }
 
@@ -135,7 +159,8 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
     }
 
     fun addTopicQuestion(question: Question) {
-        _questions.add(question)
+        val nextQuestionId = _questions.maxBy { it.id }.id + 1
+        _questions.add(question.copy(id = nextQuestionId))
         saveData()
     }
 

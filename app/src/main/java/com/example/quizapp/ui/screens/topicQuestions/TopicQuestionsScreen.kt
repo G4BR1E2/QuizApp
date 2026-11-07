@@ -1,43 +1,29 @@
 package com.example.quizapp.ui.screens.topicQuestions
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fitInside
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
-import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.text.input.setTextAndSelectAll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.RadioButtonChecked
@@ -51,47 +37,32 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.paint
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.example.quizapp.data.model.Question
 import com.example.quizapp.data.model.QuestionType
 import com.example.quizapp.navigation.TopicQuestionsRoute
+import com.example.quizapp.ui.components.DeleteDialog
 import com.example.quizapp.viewmodel.QuizViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,29 +72,81 @@ fun TopicQuestionsScreen(topicQuestions: TopicQuestionsRoute, viewModel: QuizVie
     Scaffold(
         contentWindowInsets = WindowInsets(),
         topBar = {
-            TopicQuestionsTopAppBar(viewModel = viewModel, navController = navController, scrollBehavior)
+            TopicQuestionsTopAppBar(topicName = viewModel.selectedTopic.value.name, navController = navController, scrollBehavior)
         },
         floatingActionButton = {
         ExtendedFloatingActionButton(
             modifier = Modifier,
-            onClick = { viewModel.onOpenNewTopicQuestionDialog() },
+            onClick = { viewModel.onOpenNewQuestionDialog() },
             icon = { Icon(Icons.Filled.Add, "Add topic")},
             text = { Text("Add question") }
         )},
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ) { padding ->
-        QuestionList(viewModel, modifier = Modifier.padding(padding))
-        if (viewModel.isOpenNewTopicQuestionDialog.value) {
-            NewQuestionDialog(viewModel) {
-                viewModel.onCloseNewTopicQuestionDialog()
-            }
+        QuestionList(
+            topicId = viewModel.selectedTopic.value.id,
+            questions = viewModel.questions,
+            modifier = Modifier.padding(padding),
+            onEditQuestionClick = { question -> viewModel.onOpenEditQuestionDialog(question) },
+            onDeleteQuestionClick = { question -> viewModel.onOpenDeleteQuestionDialog(question) }
+        )
+
+        if (viewModel.isOpenNewQuestionDialog.value) {
+            NewQuestionDialog(
+                topicId = viewModel.selectedTopic.value.id,
+                onDismissRequest = { viewModel.onCloseNewQuestionDialog() },
+                onConfirmRequest = {
+                    question -> viewModel.addTopicQuestion(question = question)
+                    viewModel.onCloseNewQuestionDialog()
+                }
+            )
+        }
+        if (viewModel.isOpenDeleteQuestionDialog.value) {
+            DeleteQuestionDialog(
+                onDismissRequest = {
+                    viewModel.onCloseDeleteQuestionDialog()
+                },
+                onConfirmRequest = {
+                    viewModel.deleteTopicQuestion(viewModel.selectedQuestion.value)
+                    viewModel.onCloseDeleteQuestionDialog()
+                }
+            )
+        }
+        if (viewModel.isOpenEditQuestionDialog.value) {
+            EditTopicQuestionDialog(
+                selectedQuestion = viewModel.selectedQuestion.value,
+                onDismissRequest = { viewModel.onCloseEditQuestionDialog() },
+                onConfirmRequest = {
+                    question -> viewModel.updateQuestion(question)
+                    viewModel.onCloseEditQuestionDialog()
+                }
+            )
         }
     }
 }
 
+@Composable
+fun EditTopicQuestionDialog(selectedQuestion: Question, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
+    TopicQuestionDialog(
+        selectedQuestion = selectedQuestion,
+        topicId = 0,
+        onDismissRequest = onDismissRequest,
+        onConfirmRequest = onConfirmRequest,
+    )
+}
+
+@Composable
+fun DeleteQuestionDialog(onDismissRequest: () -> Unit, onConfirmRequest: () -> Unit) {
+    DeleteDialog(
+        text = "Are you sure you want to delete this question?",
+        onDismissRequest = onDismissRequest,
+        onConfirmRequest = onConfirmRequest
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopicQuestionsTopAppBar(viewModel: QuizViewModel, navController: NavController, scrollBehavior: TopAppBarScrollBehavior) {
+fun TopicQuestionsTopAppBar(topicName: String, navController: NavController, scrollBehavior: TopAppBarScrollBehavior) {
     CenterAlignedTopAppBar(
         modifier = Modifier,
         scrollBehavior = scrollBehavior,
@@ -131,7 +154,7 @@ fun TopicQuestionsTopAppBar(viewModel: QuizViewModel, navController: NavControll
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
         title = {
-            Text(text = "${viewModel.selectedTopic.value.name} topic")
+            Text(text = topicName)
         },
         navigationIcon = {
             IconButton(
@@ -146,83 +169,20 @@ fun TopicQuestionsTopAppBar(viewModel: QuizViewModel, navController: NavControll
 }
 
 @Composable
-fun NewQuestionDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
-    val questionTextTextFieldState = rememberTextFieldState()
-    val topicQuestion = Question(-1, -1, "", QuestionType.FILL_IN, emptyList(), "")
-
-    Dialog(
+fun NewQuestionDialog(topicId: Int, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
+    TopicQuestionDialog(
+        topicId = topicId,
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(dismissOnBackPress = true)
-    ) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    fontSize = 24.sp,
-                    text = "Enter a new question for the ${viewModel.selectedTopic.value.name} topic",
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                OutlinedTextField(
-                    state = questionTextTextFieldState,
-                    label = { Text("Question") },
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                QuestionTypeDropdownMenu(viewModel) {
-                    when (viewModel.selectedQuestionType.value) {
-                        QuestionType.FILL_IN -> FillInQuestion(viewModel, questionTextTextFieldState.text.trim().toString())
-                        QuestionType.MULTIPLE_CHOICE -> MultipleChoiceQuestion(viewModel, questionTextTextFieldState.text.trim().toString())
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismissRequest) {
-                        Text("Cancel")
-                    }
-
-                    TextButton(onClick = {
-                        viewModel.addTopicQuestion(viewModel.question.value)
-                        onDismissRequest()
-                    }) {
-                        Text("Confirm")
-                    }
-                }
-            }
-        }
-    }
+        onConfirmRequest = onConfirmRequest,
+    )
 }
 
 @Composable
-fun MultipleChoiceQuestion(viewModel: QuizViewModel, questionText: String) {
-    val choices = rememberSaveable { mutableStateListOf<String>() }
+fun MultipleChoiceQuestion(choices: SnapshotStateList<String>, answer: MutableState<String>) {
     val newChoiceTextFieldState = rememberTextFieldState("")
-    val questionAnswer = rememberSaveable { mutableStateOf("") }
-    val questionAnswerTextFieldState = rememberTextFieldState()
+    val questionAnswerTextFieldState = rememberTextFieldState(answer.value)
 
-    val nextQuestionId = viewModel.questions.filter { it.id == viewModel.selectedTopic.value.id }.maxBy { it.id }.id + 1
-    viewModel.setQuestion(
-        Question(
-            id = nextQuestionId,
-            topicId = viewModel.selectedTopic.value.id,
-            questionText = questionText,
-            type = viewModel.selectedQuestionType.value,
-            options = choices,
-            correctAnswer = questionAnswer.value
-        )
-    )
-
-    if (questionAnswer.value != "") {
+    if (answer.value != "") {
         OutlinedTextField(
             state = questionAnswerTextFieldState,
             readOnly = true,
@@ -231,9 +191,9 @@ fun MultipleChoiceQuestion(viewModel: QuizViewModel, questionText: String) {
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             trailingIcon = {
                 IconButton(onClick = {
-                    questionAnswer.value = ""
+                    answer.value = ""
                 }) {
-                    Icon(imageVector = Icons.Default.RemoveCircle, contentDescription = "Delete choice")
+                    Icon(imageVector = Icons.Default.RemoveCircle, contentDescription = "Delete answer")
                 }
             }
         )
@@ -256,8 +216,8 @@ fun MultipleChoiceQuestion(viewModel: QuizViewModel, questionText: String) {
                 },
                 leadingIcon = {
                     IconButton(onClick = {
-                        questionAnswer.value = choice
-                        questionAnswerTextFieldState.edit { replace(0, length, questionAnswer.value) }
+                        answer.value = choice
+                        questionAnswerTextFieldState.edit { replace(0, length, answer.value) }
                     }) {
                         Icon(imageVector = Icons.Default.QuestionAnswer, contentDescription = "Mark as question answer")
                     }
@@ -273,7 +233,7 @@ fun MultipleChoiceQuestion(viewModel: QuizViewModel, questionText: String) {
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         onKeyboardAction = {
             val choiceText = newChoiceTextFieldState.text.trim().toString()
-            if (choiceText.isBlank() || choiceText == "Enter a choice") {
+            if (choiceText.isBlank() || choiceText == "Enter a choice" || choiceText == "Already entered") {
                 newChoiceTextFieldState.setTextAndSelectAll("Enter a choice")
             } else if (choices.contains(choiceText)) {
                 newChoiceTextFieldState.setTextAndSelectAll("Already entered")
@@ -287,18 +247,9 @@ fun MultipleChoiceQuestion(viewModel: QuizViewModel, questionText: String) {
 }
 
 @Composable
-fun FillInQuestion(viewModel: QuizViewModel, questionText: String) {
-    val questionAnswerTextFieldState = rememberTextFieldState("")
-    val nextQuestionId = if (viewModel.questions.isEmpty()) 1 else viewModel.questions.maxBy { it.topicId }.topicId + 1
-    viewModel.setQuestion(
-        Question(
-            id = nextQuestionId,
-            topicId = viewModel.selectedTopic.value.id,
-            questionText = questionText,
-            type = viewModel.selectedQuestionType.value,
-            correctAnswer = questionAnswerTextFieldState.text.trim().toString()
-        )
-    )
+fun FillInQuestion(answer: MutableState<String>) {
+    val questionAnswerTextFieldState = rememberTextFieldState()
+    answer.value = questionAnswerTextFieldState.text.trim().toString()
 
     OutlinedTextField(
         state = questionAnswerTextFieldState,
@@ -307,8 +258,7 @@ fun FillInQuestion(viewModel: QuizViewModel, questionText: String) {
         lineLimits = TextFieldLineLimits.SingleLine,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         onKeyboardAction = {
-            val answerText = questionAnswerTextFieldState.text.trim().toString()
-            if (answerText.isBlank() || answerText == "Enter an answer") {
+            if (answer.value.isBlank() || answer.value == "Enter an answer") {
                 questionAnswerTextFieldState.setTextAndSelectAll("Enter an answer")
             }
         }
@@ -317,9 +267,9 @@ fun FillInQuestion(viewModel: QuizViewModel, questionText: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuestionTypeDropdownMenu(viewModel: QuizViewModel, inputForm: @Composable (() -> Unit)) {
+fun QuestionTypeDropdownMenu(selectedType: MutableState<QuestionType>, inputForm: @Composable (() -> Unit)) {
     val expanded = rememberSaveable { mutableStateOf(false) }
-    val questionTypeTextFieldState = rememberTextFieldState(QuestionType.FILL_IN.text)
+    val questionTypeTextFieldState = rememberTextFieldState(selectedType.value.text)
 
     ExposedDropdownMenuBox(
         expanded = expanded.value,
@@ -343,7 +293,7 @@ fun QuestionTypeDropdownMenu(viewModel: QuizViewModel, inputForm: @Composable ((
                     text = { Text(text = type.text) },
                     onClick = {
                         questionTypeTextFieldState.edit { replace(0, questionTypeTextFieldState.text.length, type.text) }
-                        viewModel.setSelectedQuestionType(type)
+                        selectedType.value = type
                         expanded.value = false
                     }
                 )
@@ -355,19 +305,29 @@ fun QuestionTypeDropdownMenu(viewModel: QuizViewModel, inputForm: @Composable ((
 }
 
 @Composable
-fun QuestionList(viewModel: QuizViewModel, modifier: Modifier = Modifier) {
+fun QuestionList(
+    questions: List<Question>,
+    modifier: Modifier = Modifier,
+    topicId: Int,
+    onEditQuestionClick: (Question) -> Unit,
+    onDeleteQuestionClick: (Question) -> Unit
+) {
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        items(viewModel.questions.filter { it.topicId == viewModel.selectedTopic.value.id }) { question ->
-            QuestionCard(question = question, viewModel = viewModel)
+        items(questions.filter { it.topicId == topicId }) { question ->
+            QuestionCard(
+                question = question,
+                onEditClick = { onEditQuestionClick(question) },
+                onDeleteClick = { onDeleteQuestionClick(question) }
+            )
         }
     }
 }
 
 @Composable
-fun QuestionCard(question: Question, viewModel: QuizViewModel) {
+fun QuestionCard(question: Question, onEditClick: () -> Unit, onDeleteClick: () -> Unit) {
     val expanded = rememberSaveable { mutableStateOf(false) }
 
     ElevatedCard(
@@ -395,23 +355,21 @@ fun QuestionCard(question: Question, viewModel: QuizViewModel) {
                 )
                 Row() {
                     IconButton(
-                        onClick = {
-                        },
+                        onClick = onEditClick,
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Icon(
                             Icons.Filled.Edit,
-                            contentDescription = "Edit",
+                            contentDescription = "EditQuestionIcon",
                         )
                     }
                     IconButton(
-                        onClick = {
-                        },
+                        onClick = onDeleteClick,
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Icon(
                             Icons.Filled.Delete,
-                            contentDescription = "DeleteTopicIcon",
+                            contentDescription = "DeleteQuestionIcon",
                         )
                     }
                 }

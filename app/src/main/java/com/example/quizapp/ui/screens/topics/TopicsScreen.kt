@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.quizapp.data.model.Topic
 import com.example.quizapp.navigation.TopicsRoute
+import com.example.quizapp.ui.components.DeleteDialog
 import com.example.quizapp.viewmodel.QuizViewModel
 
 @Composable
@@ -51,63 +52,62 @@ fun TopicsScreen(topic: TopicsRoute, viewModel: QuizViewModel, onNavigateToTopic
             text = { Text("Add topic") }
         )
     }) { padding ->
-        TopicList(viewModel = viewModel, modifier = Modifier.padding(padding), onTopicClick = onNavigateToTopicQuestions)
+        TopicList(
+            modifier = Modifier.padding(padding),
+            topics = viewModel.topics,
+            onTopicClick = {
+                topic -> viewModel.setSelectedTopic(topic)
+                onNavigateToTopicQuestions()
+            },
+            onEditTopicClick = { topic -> viewModel.onOpenEditTopicDialog(topic) },
+            onDeleteTopicClick = { topic -> viewModel.onOpenDeleteTopicDialog(topic) }
+        )
+
         if (viewModel.isOpenNewTopicDialog.value) {
-            NewTopicDialog(viewModel) { viewModel.onCloseNewTopicDialog() }
+            NewTopicDialog(
+                onDismissRequest = { viewModel.onCloseNewTopicDialog() },
+                onConfirmRequest = {
+                    topic -> viewModel.addTopic(topic)
+                    viewModel.onCloseNewTopicDialog()
+                }
+            )
         }
         if (viewModel.isOpenDeleteTopicDialog.value) {
-            DeleteTopicDialog(viewModel) { viewModel.onCloseDeleteTopicDialog() }
+            DeleteTopicDialog(
+                topicName = viewModel.selectedTopic.value.name,
+                onDismissRequest = { viewModel.onCloseDeleteTopicDialog() },
+                onConfirmRequest = {
+                    viewModel.deleteTopic(viewModel.selectedTopic.value)
+                    viewModel.onCloseDeleteTopicDialog()
+                }
+            )
         }
         if (viewModel.isOpenEditTopicDialog.value) {
-            EditTopicDialog(viewModel) { viewModel.onCloseEditTopicDialog()}
-        }
-    }
-}
-
-@Composable
-fun DeleteTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
-    Dialog(onDismissRequest = onDismissRequest) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Icon(
-                    Icons.Filled.Warning,
-                    contentDescription = "DeleteTopicWarning"
-                )
-                Text(
-                    fontSize = 24.sp,
-                    text = "Are you sure you want to delete the ${viewModel.selectedTopic.value.name} topic?",
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-
-                Row() {
-                    TextButton(onClick = onDismissRequest) {
-                        Text("Cancel")
-                    }
-
-                    TextButton(onClick = {
-                        viewModel.deleteTopic(viewModel.selectedTopic.value)
-                        onDismissRequest()
-                    }) {
-                        Text("Confirm")
-                    }
+            EditTopicDialog(
+                selectedTopic = viewModel.selectedTopic.value,
+                onDismissRequest = { viewModel.onCloseEditTopicDialog() },
+                onConfirmRequest = {
+                    updatedTopic -> viewModel.updateTopic(updatedTopic)
+                    viewModel.onCloseEditTopicDialog()
                 }
-            }
+            )
         }
     }
 }
 
 @Composable
-fun EditTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
-    val topicNameTextFieldState = rememberTextFieldState(viewModel.selectedTopic.value.name)
-    val topicDescriptionTextFieldState = rememberTextFieldState(viewModel.selectedTopic.value.description ?: "")
+fun DeleteTopicDialog(topicName: String, onDismissRequest: () -> Unit, onConfirmRequest: () -> Unit) {
+    DeleteDialog(
+        text = "Are you sure you want to delete the $topicName topic?",
+        onDismissRequest = onDismissRequest,
+        onConfirmRequest = onConfirmRequest
+    )
+}
+
+@Composable
+fun EditTopicDialog(selectedTopic: Topic, onDismissRequest: () -> Unit, onConfirmRequest: (Topic) -> Unit) {
+    val topicNameTextFieldState = rememberTextFieldState(selectedTopic.name)
+    val topicDescriptionTextFieldState = rememberTextFieldState(selectedTopic.description ?: "")
 
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(
@@ -145,12 +145,11 @@ fun EditTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
                     }
 
                     TextButton(onClick = {
-                        val updatedTopic = viewModel.selectedTopic.value.copy(
+                        val updatedTopic = selectedTopic.copy(
                             name = topicNameTextFieldState.text.toString(),
                             description = topicDescriptionTextFieldState.text.toString()
                         )
-                        viewModel.updateTopic(updatedTopic)
-                        onDismissRequest()
+                        onConfirmRequest(updatedTopic)
                     }) {
                         Text("Confirm")
                     }
@@ -161,7 +160,7 @@ fun EditTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun NewTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
+fun NewTopicDialog(onDismissRequest: () -> Unit, onConfirmRequest: (Topic) -> Unit) {
     val topicNameTextFieldState = rememberTextFieldState()
     val topicDescriptionTextFieldState = rememberTextFieldState()
 
@@ -201,20 +200,12 @@ fun NewTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
                     }
 
                     TextButton(onClick = {
-                        if (topicNameTextFieldState.text.isBlank() || topicNameTextFieldState.text == "Enter a topic name") {
-                            topicNameTextFieldState.setTextAndSelectAll("Enter a topic name")
-                            return@TextButton
-                        }
-
-                        val nextTopicId = if (viewModel.topics.isEmpty()) 1 else viewModel.topics.maxBy { topic -> topic.id }.id + 1
-                        viewModel.addTopic(
-                            Topic(
-                                nextTopicId,
-                                topicNameTextFieldState.text.toString(),
-                                topicDescriptionTextFieldState.text.toString()
-                            )
+                        val newTopic = Topic(
+                            id = 0,
+                            name = topicNameTextFieldState.text.trim().toString(),
+                            description = if (topicDescriptionTextFieldState.text.isBlank()) null else topicDescriptionTextFieldState.text.trim().toString()
                         )
-                        onDismissRequest()
+                        onConfirmRequest(newTopic)
                     }) {
                         Text("Confirm")
                     }
@@ -225,21 +216,31 @@ fun NewTopicDialog(viewModel: QuizViewModel, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun TopicList(viewModel: QuizViewModel, modifier: Modifier = Modifier, onTopicClick: () -> Unit) {
+fun TopicList(
+    topics: List<Topic>,
+    modifier: Modifier = Modifier,
+    onTopicClick: (Topic) -> Unit,
+    onEditTopicClick: (Topic) -> Unit,
+    onDeleteTopicClick: (Topic) -> Unit)
+{
     LazyColumn(
         modifier = modifier.fillMaxSize()
     ) {
-        items(viewModel.topics) { topic ->
-            TopicCard(topic = topic, viewModel = viewModel, onClick = onTopicClick)
+        items(topics) { topic ->
+            TopicCard(
+                topic = topic,
+                onClick = { onTopicClick(topic) },
+                onEditClick = { onEditTopicClick(topic) },
+                onDeleteClick = { onDeleteTopicClick(topic) }
+            )
         }
     }
 }
 
 @Composable
-fun TopicCard(modifier: Modifier = Modifier, topic: Topic, viewModel: QuizViewModel, onClick: () -> Unit) {
+fun TopicCard(modifier: Modifier = Modifier, topic: Topic, onClick: () -> Unit, onEditClick: () -> Unit, onDeleteClick: () -> Unit) {
     ElevatedCard(
         onClick = {
-            viewModel.setSelectedTopic(topic)
             onClick()
         },
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
@@ -258,14 +259,14 @@ fun TopicCard(modifier: Modifier = Modifier, topic: Topic, viewModel: QuizViewMo
                 Text(
                     text = topic.name,
                     fontSize = 24.sp,
-                    modifier = Modifier.padding(16.dp).weight(1f, fill = false)
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .weight(1f, fill = false)
                 )
 
                 Row() {
                     IconButton(
-                        onClick = {
-                            viewModel.onOpenEditTopicDialog(topic)
-                        },
+                        onClick = onEditClick,
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Icon(
@@ -274,9 +275,7 @@ fun TopicCard(modifier: Modifier = Modifier, topic: Topic, viewModel: QuizViewMo
                         )
                     }
                     IconButton(
-                        onClick = {
-                            viewModel.onOpenDeleteTopicDialog(topic)
-                        },
+                        onClick = onDeleteClick,
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Icon(
