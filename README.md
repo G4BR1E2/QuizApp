@@ -13,6 +13,7 @@ How to use the app:
 1. Browse topics: Tap the Topics tab in the bottom navigation bar.
 2. Create a topic: Tap "Add topic" to add a new subject (e.g., Science, History, Programming).
 3. Add questions: Tap any topic to open its questions screen, then tap "Add question" to add fill in or multiple choice questions.
+4. Play quizzes: Tap the Quiz tab in the bottom navigation bar and click play on any of the topics you created.
 
 - **Language**: [Kotlin](https://kotlinlang.org/) (v2.4+)
 - **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose) (Material 3)
