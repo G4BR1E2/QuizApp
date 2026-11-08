@@ -12,12 +12,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.foundation.text.input.setTextAndSelectAll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -36,12 +34,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.quizapp.data.model.Topic
-import com.example.quizapp.navigation.TopicsRoute
 import com.example.quizapp.ui.components.DeleteDialog
 import com.example.quizapp.viewmodel.QuizViewModel
 
 @Composable
-fun TopicsScreen(topic: TopicsRoute, viewModel: QuizViewModel, onNavigateToTopicQuestions: () -> Unit) {
+fun TopicsScreen(viewModel: QuizViewModel, onNavigateToTopicQuestions: () -> Unit) {
     Scaffold(
         contentWindowInsets = WindowInsets.statusBars,
         floatingActionButton = {

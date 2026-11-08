@@ -1,7 +1,6 @@
 package com.example.quizapp.navigation
 
 
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Quiz
@@ -9,12 +8,12 @@ import androidx.compose.material.icons.filled.Topic
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.quizapp.ui.screens.home.HomeScreen
 import com.example.quizapp.ui.screens.quiz.ChooseQuizTopicScreen
+import com.example.quizapp.ui.screens.quiz.QuizPlayScreen
 import com.example.quizapp.ui.screens.topicQuestions.TopicQuestionsScreen
 import com.example.quizapp.ui.screens.topics.TopicsScreen
 import com.example.quizapp.viewmodel.QuizViewModel
@@ -34,6 +33,8 @@ object TopicsRoute
 object QuizRoute
 @Serializable
 object TopicQuestionsRoute
+@Serializable
+object QuizPlayRoute
 
 @Composable
 fun AppNavigation(
@@ -47,18 +48,27 @@ fun AppNavigation(
         startDestination = startDestination,
         modifier = modifier
     ) {
-        composable<HomeRoute> { HomeScreen(home = HomeRoute, viewModel = viewModel) }
+        composable<HomeRoute> { HomeScreen(viewModel = viewModel) }
         composable<TopicsRoute> {
             TopicsScreen(
-                topic = TopicsRoute,
                 viewModel = viewModel,
                 onNavigateToTopicQuestions = { navController.navigate(route = TopicQuestionsRoute) }
             )
         }
-        composable<QuizRoute> { ChooseQuizTopicScreen(quiz = QuizRoute, viewModel = viewModel) }
+        composable<QuizRoute> {
+            ChooseQuizTopicScreen(
+                viewModel = viewModel,
+                onNavigateToQuizPlayScreen = { navController.navigate(route = QuizPlayRoute) }
+            )
+        }
         composable<TopicQuestionsRoute> {
             TopicQuestionsScreen(
-                topicQuestions = TopicQuestionsRoute,
+                viewModel = viewModel,
+                navController = navController
+            )
+        }
+        composable<QuizPlayRoute> {
+            QuizPlayScreen(
                 viewModel = viewModel,
                 navController = navController
             )

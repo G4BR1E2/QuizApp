@@ -1,12 +1,19 @@
 package com.example.quizapp.ui.screens.topicQuestions
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.size
@@ -22,6 +29,7 @@ import androidx.compose.foundation.text.input.setTextAndSelectAll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.QuestionAnswer
@@ -53,6 +61,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -61,18 +70,23 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.quizapp.data.model.Question
 import com.example.quizapp.data.model.QuestionType
-import com.example.quizapp.navigation.TopicQuestionsRoute
 import com.example.quizapp.ui.components.DeleteDialog
 import com.example.quizapp.viewmodel.QuizViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopicQuestionsScreen(topicQuestions: TopicQuestionsRoute, viewModel: QuizViewModel, navController: NavController) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController) {
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Scaffold(
         contentWindowInsets = WindowInsets(),
         topBar = {
-            TopicQuestionsTopAppBar(topicName = viewModel.selectedTopic.value.name, navController = navController, scrollBehavior)
+            TopicQuestionsTopAppBar(
+                topicName = viewModel.selectedTopic.value.name,
+                scrollBehavior = scrollBehavior,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
         },
         floatingActionButton = {
         ExtendedFloatingActionButton(
@@ -146,7 +160,7 @@ fun DeleteQuestionDialog(onDismissRequest: () -> Unit, onConfirmRequest: () -> U
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopicQuestionsTopAppBar(topicName: String, navController: NavController, scrollBehavior: TopAppBarScrollBehavior) {
+fun TopicQuestionsTopAppBar(topicName: String, scrollBehavior: TopAppBarScrollBehavior, onBackClick: () -> Unit) {
     CenterAlignedTopAppBar(
         modifier = Modifier,
         scrollBehavior = scrollBehavior,
@@ -158,9 +172,7 @@ fun TopicQuestionsTopAppBar(topicName: String, navController: NavController, scr
         },
         navigationIcon = {
             IconButton(
-                onClick = {
-                    navController.popBackStack()
-                }
+                onClick = onBackClick
             ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back button")
             }
@@ -248,7 +260,7 @@ fun MultipleChoiceQuestion(choices: SnapshotStateList<String>, answer: MutableSt
 
 @Composable
 fun FillInQuestion(answer: MutableState<String>) {
-    val questionAnswerTextFieldState = rememberTextFieldState()
+    val questionAnswerTextFieldState = rememberTextFieldState(answer.value)
     answer.value = questionAnswerTextFieldState.text.trim().toString()
 
     OutlinedTextField(
@@ -329,101 +341,119 @@ fun QuestionList(
 @Composable
 fun QuestionCard(question: Question, onEditClick: () -> Unit, onDeleteClick: () -> Unit) {
     val expanded = rememberSaveable { mutableStateOf(false) }
+    val arrowRoatation = animateFloatAsState(
+        targetValue = if (expanded.value) 180f else 0f,
+    )
 
     ElevatedCard(
         modifier = Modifier
-            .clickable(onClick = {expanded.value = !expanded.value})
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .clickable(onClick = {expanded.value = !expanded.value}),
         shape = RoundedCornerShape(10.dp),
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
         )
     ) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+        Box() {
+            Column(
+                modifier = Modifier.padding(10.dp),
             ) {
-                Icon(
-                    Icons.Filled.QuestionMark,
-                    contentDescription = "Question"
-                )
-                Row() {
-                    IconButton(
-                        onClick = onEditClick,
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.Edit,
-                            contentDescription = "EditQuestionIcon",
-                        )
-                    }
-                    IconButton(
-                        onClick = onDeleteClick,
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.Delete,
-                            contentDescription = "DeleteQuestionIcon",
-                        )
-                    }
-                }
-            }
-            Text(
-                modifier = Modifier,
-                text = question.questionText,
-                fontWeight = FontWeight.Black,
-                fontSize = 20.sp,
-            )
-
-            if (expanded.value) {
-                if (!question.options.isNullOrEmpty()) {
-                    Row(modifier = Modifier) {
-                        Text(
-                            text = "Choices:",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 18.sp
-                        )
-                    }
-                    Column() {
-                        question.options!!.forEach { choice ->
-                            Row(
-                                modifier = Modifier.padding(start = 20.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    modifier = Modifier.size(height = 16.dp, width = 16.dp),
-                                    imageVector = Icons.Filled.RadioButtonChecked,
-                                    contentDescription = "Choice"
-                                )
-                                Text(modifier = Modifier.padding(start = 4.dp), text = choice)
-                            }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Icon(
+                        Icons.Filled.QuestionMark,
+                        contentDescription = "Question"
+                    )
+                    Row() {
+                        IconButton(
+                            onClick = onEditClick,
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = "EditQuestionIcon",
+                            )
+                        }
+                        IconButton(
+                            onClick = onDeleteClick,
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = "DeleteQuestionIcon",
+                            )
                         }
                     }
                 }
+                Text(
+                    modifier = Modifier,
+                    text = question.questionText,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 20.sp,
+                )
 
-                Row(modifier = Modifier) {
-                    Text(
-                        text = "Answer: ",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp
-                    )
-                    Text(text = question.correctAnswer)
+                AnimatedVisibility(
+                    visible = expanded.value,
+                    enter = expandVertically(expandFrom = Alignment.Top),
+                    exit = shrinkVertically(shrinkTowards = Alignment.Top)
+                ) {
+                    Column() {
+                        if (!question.options.isNullOrEmpty()) {
+                            Row(modifier = Modifier) {
+                                Text(
+                                    text = "Choices:",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 18.sp
+                                )
+                            }
+                            Column() {
+                                question.options!!.forEach { choice ->
+                                    Row(
+                                        modifier = Modifier.padding(start = 20.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier.size(height = 16.dp, width = 16.dp),
+                                            imageVector = Icons.Filled.RadioButtonChecked,
+                                            contentDescription = "Choice"
+                                        )
+                                        Text(modifier = Modifier.padding(start = 4.dp), text = choice)
+                                    }
+                                }
+                            }
+                        }
+
+                        Row(modifier = Modifier) {
+                            Text(
+                                text = "Answer: ",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 18.sp
+                            )
+                            Text(text = question.correctAnswer)
+                        }
+                        Row(modifier = Modifier) {
+                            Text(
+                                text = "Question type: ",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 18.sp
+                            )
+                            Text(text = question.type.text)
+                        }
+                    }
                 }
-                Row(modifier = Modifier) {
-                    Text(
-                        text = "Question type: ",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp
-                    )
-                    Text(text = question.type.text)
-                }
+                Spacer(modifier = Modifier.height(8.dp))
             }
+
+            Icon(
+                modifier = Modifier.align(Alignment.BottomCenter).rotate(arrowRoatation.value),
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = "Drop down arrow"
+            )
         }
+
     }
 }

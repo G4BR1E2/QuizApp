@@ -148,7 +148,7 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
     }
 
     fun addTopic(topic: Topic) {
-        val nextTopicId = _topics.maxBy { it.id }.id + 1
+        val nextTopicId = if (_topics.isEmpty()) 1 else _topics.maxBy { it.id }.id + 1
         _topics.add(topic.copy(id = nextTopicId))
         saveData()
     }
@@ -159,7 +159,7 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
     }
 
     fun addTopicQuestion(question: Question) {
-        val nextQuestionId = _questions.maxBy { it.id }.id + 1
+        val nextQuestionId = if (_questions.isEmpty()) 1 else _questions.maxBy { it.id }.id + 1
         _questions.add(question.copy(id = nextQuestionId))
         saveData()
     }
