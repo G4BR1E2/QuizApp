@@ -59,7 +59,6 @@ fun AppNavigation(
         composable<QuizRoute> {
             MainQuizScreen(
                 viewModel = viewModel,
-                navController = navController,
                 onNavigateToQuizPlayScreen = {
                     topic -> viewModel.setSelectedTopic(topic)
                     navController.navigate(route = QuizPlayRoute)
