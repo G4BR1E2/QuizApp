@@ -26,19 +26,11 @@ import com.example.quizapp.data.model.Topic
 import com.example.quizapp.viewmodel.QuizViewModel
 
 @Composable
-fun ChooseQuizTopicScreen(viewModel: QuizViewModel, onNavigateToQuizPlayScreen: () -> Unit) {
-    Scaffold(
-
-    ){ padding ->
-        TopicList(
-            modifier = Modifier.padding(padding),
-            topics = viewModel.topics,
-            onPlayTopicClick = {
-                topic -> viewModel.setSelectedTopic(topic)
-                onNavigateToQuizPlayScreen()
-            }
-        )
-    }
+fun ChooseQuizTopicScreen(topics: List<Topic>, onTopicPlay: (Topic) -> Unit) {
+    TopicList(
+        topics = topics,
+        onPlayTopicClick = onTopicPlay
+    )
 }
 
 @Composable
@@ -53,20 +45,20 @@ fun TopicList(
         items(topics) { topic ->
             TopicCard(
                 topic = topic,
-                onClick = { onPlayTopicClick(topic) },
+                onPlayClick = { onPlayTopicClick(topic) },
             )
         }
     }
 }
 
 @Composable
-fun TopicCard(modifier: Modifier = Modifier, topic: Topic, onClick: () -> Unit) {
+fun TopicCard(modifier: Modifier = Modifier, topic: Topic, onPlayClick: () -> Unit) {
     ElevatedCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(10.dp)
     ) {
@@ -88,7 +80,7 @@ fun TopicCard(modifier: Modifier = Modifier, topic: Topic, onClick: () -> Unit) 
                         defaultElevation = 8.dp,
                         pressedElevation = 0.dp
                     ),
-                    onClick = onClick
+                    onClick = onPlayClick
                 ) {
                     Icon(
                         imageVector = Icons.Filled.PlayArrow,

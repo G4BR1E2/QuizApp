@@ -27,7 +27,7 @@ import com.example.quizapp.data.model.Question
 import com.example.quizapp.data.model.QuestionType
 
 @Composable
-fun TopicQuestionDialog(selectedQuestion: Question? = null, topicId: Int, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
+fun TopicQuestionDialog(text: String, selectedQuestion: Question? = null, topicId: Int, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
     val questionTextTextFieldState = rememberTextFieldState(selectedQuestion?.questionText ?: "")
     val selectedType = rememberSaveable { mutableStateOf(selectedQuestion?.type ?: QuestionType.FILL_IN) }
     val options = rememberSaveable { selectedQuestion?.options?.toMutableStateList() ?: mutableStateListOf() }
@@ -49,7 +49,7 @@ fun TopicQuestionDialog(selectedQuestion: Question? = null, topicId: Int, onDism
             ) {
                 Text(
                     fontSize = 24.sp,
-                    text = "Edit the current question",
+                    text = text,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )

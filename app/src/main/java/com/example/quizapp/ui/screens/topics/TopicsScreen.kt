@@ -28,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,6 +40,8 @@ import com.example.quizapp.viewmodel.QuizViewModel
 
 @Composable
 fun TopicsScreen(viewModel: QuizViewModel, onNavigateToTopicQuestions: () -> Unit) {
+    val topics = viewModel.topics.collectAsState()
+
     Scaffold(
         contentWindowInsets = WindowInsets.statusBars,
         floatingActionButton = {
@@ -51,7 +54,7 @@ fun TopicsScreen(viewModel: QuizViewModel, onNavigateToTopicQuestions: () -> Uni
     }) { padding ->
         TopicList(
             modifier = Modifier.padding(padding),
-            topics = viewModel.topics,
+            topics = topics.value,
             onTopicClick = {
                 topic -> viewModel.setSelectedTopic(topic)
                 onNavigateToTopicQuestions()

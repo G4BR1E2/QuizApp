@@ -1,6 +1,10 @@
 package com.example.quizapp.ui.screens.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -41,7 +45,11 @@ fun NavBar(modifier: Modifier = Modifier, viewModel: QuizViewModel, navControlle
     Scaffold(
         modifier = modifier,
         bottomBar = {
-            AnimatedVisibility(isVisibleBottomBar.value) {
+            AnimatedVisibility(
+                isVisibleBottomBar.value,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
                 NavigationBar() {
                     Destination.entries.forEach { destination ->
                         val selected = selectedDestination?.hierarchy?.any {

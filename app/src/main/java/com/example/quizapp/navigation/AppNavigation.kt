@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.quizapp.ui.screens.home.HomeScreen
 import com.example.quizapp.ui.screens.quiz.ChooseQuizTopicScreen
+import com.example.quizapp.ui.screens.quiz.MainQuizScreen
 import com.example.quizapp.ui.screens.quiz.QuizPlayScreen
 import com.example.quizapp.ui.screens.topicQuestions.TopicQuestionsScreen
 import com.example.quizapp.ui.screens.topics.TopicsScreen
@@ -56,9 +57,13 @@ fun AppNavigation(
             )
         }
         composable<QuizRoute> {
-            ChooseQuizTopicScreen(
+            MainQuizScreen(
                 viewModel = viewModel,
-                onNavigateToQuizPlayScreen = { navController.navigate(route = QuizPlayRoute) }
+                navController = navController,
+                onNavigateToQuizPlayScreen = {
+                    topic -> viewModel.setSelectedTopic(topic)
+                    navController.navigate(route = QuizPlayRoute)
+                }
             )
         }
         composable<TopicQuestionsRoute> {

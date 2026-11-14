@@ -1,39 +1,51 @@
 package com.example.quizapp.viewmodel
 
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.quizapp.data.model.Attempt
 import com.example.quizapp.data.model.Question
 import com.example.quizapp.data.model.QuestionType
 import com.example.quizapp.data.model.Topic
 import com.example.quizapp.database.QuizDatabase
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
 
-    private val _topics = mutableStateListOf<Topic>()
-    val topics: SnapshotStateList<Topic> = _topics
+    private val topicDao = quizDatabase.topicDao()
+    private val questionDao = quizDatabase.questionDao()
+    private val attemptDao = quizDatabase.attemptDao()
 
+    val topics: StateFlow<List<Topic>> = topicDao.getAllTopics().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
-    private val _questions = mutableStateListOf<Question>()
-    val questions: SnapshotStateList<Question> = _questions
+    val questions: StateFlow<List<Question>> = questionDao.getAllQuestions().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
-
-    init {
-        val data = quizDatabase.getData()
-        fillTopics(data.topics)
-        fillTopicQuestions(data.questions)
-    }
+    val attempts: StateFlow<List<Attempt>> = attemptDao.getAllAttempts().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                val database = QuizDatabase(this[APPLICATION_KEY]!!.applicationContext)
+                val database = QuizDatabase.getDatabase(this[APPLICATION_KEY]!!.applicationContext)
                 QuizViewModel(quizDatabase = database)
             }
         }
@@ -70,6 +82,16 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
     private val _isOpenEditQuestionDialog = mutableStateOf(false)
     val isOpenEditQuestionDialog: State<Boolean> = _isOpenEditQuestionDialog
 
+    private val _isOpenQuitQuizDialog = mutableStateOf(false)
+    val isOpenQuitQuizDialog: State<Boolean> = _isOpenQuitQuizDialog
+
+    fun onOpenQuitQuizDialog() {
+        _isOpenQuitQuizDialog.value = true
+    }
+
+    fun onCloseQuitQuizDialog() {
+        _isOpenQuitQuizDialog.value = false
+    }
 
     fun onOpenEditQuestionDialog(selectedQuestion: Question) {
         _isOpenEditQuestionDialog.value = true
@@ -127,55 +149,58 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
         _selectedTopic.value = topic
     }
 
-    private fun saveData() {
-        quizDatabase.saveData(_topics, _questions)
-    }
 
-    fun updateQuestion(updatedQuestion: Question) {
-        val index = _questions.indexOfFirst { it.id == updatedQuestion.id }
-        if (index != -1) {
-            _questions[index] = updatedQuestion
-            saveData()
+    fun addTopic(topic: Topic) {
+        viewModelScope.launch {
+            topicDao.insertTopic(topic)
         }
     }
 
     fun updateTopic(updatedTopic: Topic) {
-        val index = _topics.indexOfFirst { it.id == updatedTopic.id }
-        if (index != -1) {
-            _topics[index] = updatedTopic
-            saveData()
+        viewModelScope.launch {
+            topicDao.updateTopic(updatedTopic)
         }
     }
 
-    fun addTopic(topic: Topic) {
-        val nextTopicId = if (_topics.isEmpty()) 1 else _topics.maxBy { it.id }.id + 1
-        _topics.add(topic.copy(id = nextTopicId))
-        saveData()
-    }
-
     fun deleteTopic(topic: Topic) {
-        _topics.remove(topic)
-        saveData()
+        viewModelScope.launch {
+            topicDao.deleteTopic(topic)
+        }
     }
 
-    fun addTopicQuestion(question: Question) {
-        val nextQuestionId = if (_questions.isEmpty()) 1 else _questions.maxBy { it.id }.id + 1
-        _questions.add(question.copy(id = nextQuestionId))
-        saveData()
+    fun addQuestion(question: Question) {
+        viewModelScope.launch {
+            questionDao.insertQuestion(question)
+        }
     }
 
-    fun deleteTopicQuestion(question: Question) {
-        _questions.remove(question)
-        saveData()
+    fun updateQuestion(updatedQuestion: Question) {
+        viewModelScope.launch {
+            questionDao.updateQuestion(updatedQuestion)
+        }
     }
 
-    fun fillTopics(topics: MutableList<Topic>) {
-        _topics.clear()
-        _topics.addAll(topics)
+    fun deleteQuestion(question: Question) {
+        viewModelScope.launch {
+            questionDao.deleteQuestion(question)
+        }
     }
 
-    fun fillTopicQuestions(questions: List<Question>) {
-        _questions.clear()
-        _questions.addAll(questions)
+    fun addAttempt(attempt: Attempt) {
+        viewModelScope.launch {
+            attemptDao.insertAttempt(attempt)
+        }
+    }
+
+    fun updateAttempt(attempt: Attempt) {
+        viewModelScope.launch {
+            attemptDao.insertAttempt(attempt)
+        }
+    }
+
+    fun deleteAttempt(attempt: Attempt) {
+        viewModelScope.launch {
+            attemptDao.deleteAttempt(attempt)
+        }
     }
 }

@@ -1,33 +1,39 @@
 package com.example.quizapp.database
 
 import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import com.example.quizapp.data.model.Attempt
 import com.example.quizapp.data.model.Question
 import com.example.quizapp.data.model.Topic
+import com.example.quizapp.database.dao.AttemptDao
+import com.example.quizapp.database.dao.QuestionDao
+import com.example.quizapp.database.dao.TopicDao
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 
-@Serializable
-data class QuizData(val topics: MutableList<Topic>, val questions: MutableList<Question>)
+@Database(entities = [Topic::class, Question::class, Attempt::class], version = 1, exportSchema = false)
+@TypeConverters(Converters::class)
+abstract class QuizDatabase(): RoomDatabase() {
+    abstract fun topicDao(): TopicDao
 
-class QuizDatabase(private val context: Context) {
+    abstract fun questionDao(): QuestionDao
 
-    private val file = File(context.filesDir, "quiz_data.json")
+    abstract fun attemptDao(): AttemptDao
 
-    fun saveData(topics: MutableList<Topic> = mutableListOf(), questions: MutableList<Question> = mutableListOf()) {
-        val data = QuizData(topics, questions)
-        val json = Json.encodeToString(data)
-        file.writeText(json)
-    }
+    companion object {
+        @Volatile
+        private var Instance: QuizDatabase? = null
 
-    fun getData(): QuizData {
-        if (!file.exists())
-            return QuizData(mutableListOf(), mutableListOf())
-
-        val fileText = file.readText()
-        if (fileText.isBlank())
-            return QuizData(mutableListOf(), mutableListOf())
-
-        return Json.decodeFromString(fileText)
+        fun getDatabase(context: Context): QuizDatabase {
+            return Instance ?: synchronized(this) {
+                Room.databaseBuilder(context, QuizDatabase::class.java, "quiz_database")
+                    .build()
+                    .also { Instance = it }
+            }
+        }
     }
 }

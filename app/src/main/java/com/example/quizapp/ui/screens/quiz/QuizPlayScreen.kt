@@ -1,5 +1,7 @@
 package com.example.quizapp.ui.screens.quiz
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,12 +13,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -27,15 +33,21 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -44,6 +56,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.example.quizapp.data.model.Question
 import com.example.quizapp.data.model.QuestionType
@@ -53,6 +67,7 @@ import com.example.quizapp.viewmodel.QuizViewModel
 @Composable
 fun QuizPlayScreen(viewModel: QuizViewModel, navController: NavController) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val questions = viewModel.questions.collectAsState()
 
     Scaffold(
         contentWindowInsets = WindowInsets(),
@@ -61,18 +76,76 @@ fun QuizPlayScreen(viewModel: QuizViewModel, navController: NavController) {
                 topicName = viewModel.selectedTopic.value.name,
                 scrollBehavior = scrollBehavior,
                 onBackClick = {
-                    navController.popBackStack()
+                    viewModel.onOpenQuitQuizDialog()
                 }
             )
         }
     ) { padding ->
         QuizQuestionList(
             modifier = Modifier.padding(padding),
-            questions = viewModel.questions,
+            questions = questions.value.filter { it.topicId == viewModel.selectedTopic.value.id },
             onBackClick = {
                 navController.popBackStack()
             }
         )
+
+        if (viewModel.isOpenQuitQuizDialog.value) {
+            QuitQuizDialog(
+                topicName = viewModel.selectedTopic.value.name,
+                onDismissRequest = { viewModel.onCloseQuitQuizDialog() },
+                onConfirmRequest = {
+                    navController.popBackStack()
+                    viewModel.onCloseQuitQuizDialog()
+                }
+            )
+        }
+    }
+
+    BackHandler() {
+        viewModel.onOpenQuitQuizDialog()
+    }
+}
+
+@Composable
+fun QuitQuizDialog(topicName: String, onDismissRequest: () -> Unit, onConfirmRequest: () -> Unit) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(dismissOnBackPress = true)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Warning,
+                    contentDescription = "QuitQuizWarning"
+                )
+                Text(
+                    fontSize = 24.sp,
+                    text = "Are you sure you want to quit playing the $topicName quiz?",
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismissRequest) {
+                        Text("Cancel")
+                    }
+
+                    TextButton(onClick = onConfirmRequest ) {
+                        Text("Confirm")
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -103,9 +176,17 @@ fun QuizQuestionList(questions: List<Question>, modifier: Modifier = Modifier, o
     val fillInQuestionAnswerState = rememberTextFieldState("")
     val (selectedOption, onOptionSelected) = rememberSaveable { mutableStateOf("") }
     val userAnswers = rememberSaveable { mutableListOf<String>() }
-    var correctAnswers = rememberSaveable { 0 }
     val questionIndex = rememberSaveable { mutableIntStateOf(0) }
     val numberOfQuestions = questions.count()
+
+    val correctAnswers = rememberSaveable(questionIndex.intValue) {
+        var count = 0
+        userAnswers.forEachIndexed { index, answer ->
+            if (index < numberOfQuestions && answer == questions[index].correctAnswer)
+                ++count
+        }
+        count
+    }
 
     Column(modifier = modifier.padding(10.dp).fillMaxWidth()) {
         if (questionIndex.intValue <= numberOfQuestions - 1) {
@@ -126,6 +207,8 @@ fun QuizQuestionList(questions: List<Question>, modifier: Modifier = Modifier, o
                         QuestionType.MULTIPLE_CHOICE -> userAnswers.add(selectedOption.trim())
                     }
 
+                    fillInQuestionAnswerState.setTextAndPlaceCursorAtEnd("")
+                    onOptionSelected("")
                     questionIndex.intValue++
                 }
             ) {
@@ -143,11 +226,6 @@ fun QuizQuestionList(questions: List<Question>, modifier: Modifier = Modifier, o
             }
         }
         else {
-            userAnswers.forEachIndexed { index, answer ->
-                if (answer == questions[index].correctAnswer)
-                    correctAnswers++
-            }
-
             Text(
                 text = buildAnnotatedString {
                     append("You have ")
@@ -216,7 +294,8 @@ fun QuizQuestionCard(
 
 @Composable
 fun FillInQuestionAnswerForm(textFieldState: TextFieldState) {
-    OutlinedTextField(
+    TextField(
+        modifier = Modifier.fillMaxWidth(),
         state = textFieldState
     )
 }

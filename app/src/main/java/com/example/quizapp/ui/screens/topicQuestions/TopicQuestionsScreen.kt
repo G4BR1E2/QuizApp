@@ -56,6 +56,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -77,6 +78,8 @@ import com.example.quizapp.viewmodel.QuizViewModel
 @Composable
 fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val questions = viewModel.questions.collectAsState()
+
     Scaffold(
         contentWindowInsets = WindowInsets(),
         topBar = {
@@ -99,7 +102,7 @@ fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController)
     ) { padding ->
         QuestionList(
             topicId = viewModel.selectedTopic.value.id,
-            questions = viewModel.questions,
+            questions = questions.value,
             modifier = Modifier.padding(padding),
             onEditQuestionClick = { question -> viewModel.onOpenEditQuestionDialog(question) },
             onDeleteQuestionClick = { question -> viewModel.onOpenDeleteQuestionDialog(question) }
@@ -107,10 +110,11 @@ fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController)
 
         if (viewModel.isOpenNewQuestionDialog.value) {
             NewQuestionDialog(
+                text = "Enter a new question",
                 topicId = viewModel.selectedTopic.value.id,
                 onDismissRequest = { viewModel.onCloseNewQuestionDialog() },
                 onConfirmRequest = {
-                    question -> viewModel.addTopicQuestion(question = question)
+                    question -> viewModel.addQuestion(question = question)
                     viewModel.onCloseNewQuestionDialog()
                 }
             )
@@ -121,13 +125,14 @@ fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController)
                     viewModel.onCloseDeleteQuestionDialog()
                 },
                 onConfirmRequest = {
-                    viewModel.deleteTopicQuestion(viewModel.selectedQuestion.value)
+                    viewModel.deleteQuestion(viewModel.selectedQuestion.value)
                     viewModel.onCloseDeleteQuestionDialog()
                 }
             )
         }
         if (viewModel.isOpenEditQuestionDialog.value) {
             EditTopicQuestionDialog(
+                text = "Edit the selected question",
                 selectedQuestion = viewModel.selectedQuestion.value,
                 onDismissRequest = { viewModel.onCloseEditQuestionDialog() },
                 onConfirmRequest = {
@@ -140,8 +145,9 @@ fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController)
 }
 
 @Composable
-fun EditTopicQuestionDialog(selectedQuestion: Question, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
+fun EditTopicQuestionDialog(text: String, selectedQuestion: Question, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
     TopicQuestionDialog(
+        text = text,
         selectedQuestion = selectedQuestion,
         topicId = 0,
         onDismissRequest = onDismissRequest,
@@ -181,8 +187,9 @@ fun TopicQuestionsTopAppBar(topicName: String, scrollBehavior: TopAppBarScrollBe
 }
 
 @Composable
-fun NewQuestionDialog(topicId: Int, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
+fun NewQuestionDialog(text: String, topicId: Int, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
     TopicQuestionDialog(
+        text = text,
         topicId = topicId,
         onDismissRequest = onDismissRequest,
         onConfirmRequest = onConfirmRequest,
@@ -357,7 +364,7 @@ fun QuestionCard(question: Question, onEditClick: () -> Unit, onDeleteClick: () 
     ) {
         Box() {
             Column(
-                modifier = Modifier.padding(10.dp),
+                modifier = Modifier.padding(top = 4.dp, bottom = 10.dp, start = 10.dp, end = 10.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

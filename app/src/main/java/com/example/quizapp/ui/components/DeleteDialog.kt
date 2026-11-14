@@ -1,5 +1,6 @@
 package com.example.quizapp.ui.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,7 +45,10 @@ fun DeleteDialog(text: String, onDismissRequest: () -> Unit, onConfirmRequest: (
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                Row() {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
                     TextButton(onClick = onDismissRequest) {
                         Text("Cancel")
                     }
