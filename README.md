@@ -11,9 +11,17 @@ How to try it:
 
 How to use the app:
 1. Browse topics: Tap the Topics tab in the bottom navigation bar.
+<img width="180" height="390" alt="Screenshot_20261115_142216_QuizApp" src="https://github.com/user-attachments/assets/a37c9f07-d725-4ac0-83a6-1d27dcc314b5" />
+
 2. Create a topic: Tap "Add topic" to add a new subject (e.g., Science, History, Programming).
+<img width="180" height="390" alt="Screenshot_20261115_142231_QuizApp" src="https://github.com/user-attachments/assets/a8c37050-cadf-4415-8a05-a42e181f7925" />
+   
 3. Add questions: Tap any topic to open its questions screen, then tap "Add question" to add fill in or multiple choice questions.
+<img width="180" height="390" alt="Screenshot_20261115_142529_QuizApp" src="https://github.com/user-attachments/assets/b6582d60-38cd-4718-9c40-9888d858d807" />
+   
 4. Play quizzes: Tap the Quiz tab in the bottom navigation bar and click play on any of the topics you created.
+<img width="180" height="390" alt="Screenshot_20261115_142750_QuizApp" src="https://github.com/user-attachments/assets/59cd8702-283f-436d-b755-5d6f67f914cb" />
+<img width="180" height="390" alt="Screenshot_20261115_142841_QuizApp" src="https://github.com/user-attachments/assets/fac104e9-df40-4480-b687-b6e39d5b7149" />
 
 - **Language**: [Kotlin](https://kotlinlang.org/) (v2.4+)
 - **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose) (Material 3)
