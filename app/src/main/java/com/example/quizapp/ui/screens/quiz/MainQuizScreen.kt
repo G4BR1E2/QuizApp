@@ -8,11 +8,9 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
 import com.example.quizapp.data.model.Topic
 import com.example.quizapp.viewmodel.QuizViewModel
 
@@ -23,13 +21,14 @@ enum class QuizTab(val title: String) {
 
 @Composable
 fun MainQuizScreen(viewModel: QuizViewModel, onNavigateToQuizPlayScreen: (Topic) -> Unit) {
+    val selectedDestination = rememberSaveable { mutableStateOf(QuizTab.CHOOSE_QUIZ_TOPIC) }
+    val topics = viewModel.topics.collectAsState()
+    val questions = viewModel.questions.collectAsState()
+    val attempts = viewModel.attempts.collectAsState()
+
     Scaffold(
 
     ) { padding ->
-        val selectedDestination = rememberSaveable { mutableStateOf(QuizTab.CHOOSE_QUIZ_TOPIC) }
-        val topics = viewModel.topics.collectAsState()
-        val questions = viewModel.questions.collectAsState()
-
         Column(modifier = Modifier.padding(padding)) {
             SecondaryTabRow(selectedTabIndex = selectedDestination.value.ordinal) {
                 QuizTab.entries.forEach { tab ->
@@ -42,13 +41,16 @@ fun MainQuizScreen(viewModel: QuizViewModel, onNavigateToQuizPlayScreen: (Topic)
             }
 
             when (selectedDestination.value) {
-                QuizTab.CHOOSE_QUIZ_TOPIC -> ChooseQuizTopicScreen(
+                QuizTab.CHOOSE_QUIZ_TOPIC -> ChooseQuizTopicTab(
                     topics = topics.value.filter { topic -> questions.value.count { it.topicId == topic.id } > 0  },
                     onTopicPlay = {
                         topic -> onNavigateToQuizPlayScreen(topic)
                     },
                 )
-                QuizTab.QUIZ_ATTEMPTS -> {}
+                QuizTab.QUIZ_ATTEMPTS -> QuizAttemptsTab(
+                    attempts = attempts.value,
+                    topics = topics.value
+                )
             }
         }
     }

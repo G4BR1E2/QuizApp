@@ -6,7 +6,6 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import com.example.quizapp.data.model.Question
-import com.example.quizapp.data.model.Topic
 import kotlinx.coroutines.flow.Flow
 
 @Dao

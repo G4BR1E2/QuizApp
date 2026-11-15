@@ -6,13 +6,15 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import com.example.quizapp.data.model.Attempt
-import com.example.quizapp.data.model.Topic
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AttemptDao {
     @Query("SELECT * FROM Attempt ORDER BY id ASC")
     fun getAllAttempts(): Flow<List<Attempt>>
+
+    @Query("SELECT COUNT(*) FROM Attempt WHERE topicId = :topicId")
+    suspend fun getNumberOfAttempts(topicId: Int): Int
 
     @Insert
     suspend fun insertAttempt(attempt: Attempt)

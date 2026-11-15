@@ -21,5 +21,5 @@ class Converters {
     fun fromQuestionToAttemptMap(value: Map<Int, String>): String = Json.encodeToString(value)
 
     @TypeConverter
-    fun tomQuestionToAttemptMap(value: String): Map<Int, String> = Json.decodeFromString(value)
+    fun toQuestionToAttemptMap(value: String): Map<Int, String> = Json.decodeFromString(value)
 }

@@ -12,13 +12,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.quizapp.ui.screens.home.HomeScreen
-import com.example.quizapp.ui.screens.quiz.ChooseQuizTopicScreen
 import com.example.quizapp.ui.screens.quiz.MainQuizScreen
 import com.example.quizapp.ui.screens.quiz.QuizPlayScreen
 import com.example.quizapp.ui.screens.topicQuestions.TopicQuestionsScreen
 import com.example.quizapp.ui.screens.topics.TopicsScreen
 import com.example.quizapp.viewmodel.QuizViewModel
 import kotlinx.serialization.Serializable
+import kotlin.time.Clock
 
 enum class Destination(val id: Int, val title: String, val route: Any, val icon: ImageVector) {
     HOME(title = "Home", route = HomeRoute, icon = Icons.Filled.Home, id = 1),
@@ -74,7 +74,8 @@ fun AppNavigation(
         composable<QuizPlayRoute> {
             QuizPlayScreen(
                 viewModel = viewModel,
-                navController = navController
+                navController = navController,
+                quizStartTime = Clock.System.now().toEpochMilliseconds()
             )
         }
     }

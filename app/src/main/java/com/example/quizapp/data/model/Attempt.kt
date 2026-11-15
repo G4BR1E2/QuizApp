@@ -15,6 +15,11 @@ import androidx.room.PrimaryKey
 class Attempt(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
+    val attemptNumber: Int,
+    val score: Int,
+    val totalQuestions: Int,
+    val start: Long,
+    val end: Long,
     val topicId: Int,
     val questionToAttempt: Map<Int, String>) {
 }

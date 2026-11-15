@@ -16,17 +16,15 @@ import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.quizapp.data.model.Topic
-import com.example.quizapp.viewmodel.QuizViewModel
 
 @Composable
-fun ChooseQuizTopicScreen(topics: List<Topic>, onTopicPlay: (Topic) -> Unit) {
+fun ChooseQuizTopicTab(topics: List<Topic>, onTopicPlay: (Topic) -> Unit) {
     TopicList(
         topics = topics,
         onPlayTopicClick = onTopicPlay

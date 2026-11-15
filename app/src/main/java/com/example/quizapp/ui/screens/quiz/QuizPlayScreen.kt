@@ -1,7 +1,6 @@
 package com.example.quizapp.ui.screens.quiz
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,7 +14,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
@@ -30,14 +28,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
@@ -47,7 +43,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -62,12 +57,14 @@ import androidx.navigation.NavController
 import com.example.quizapp.data.model.Question
 import com.example.quizapp.data.model.QuestionType
 import com.example.quizapp.viewmodel.QuizViewModel
+import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuizPlayScreen(viewModel: QuizViewModel, navController: NavController) {
+fun QuizPlayScreen(viewModel: QuizViewModel, navController: NavController, quizStartTime: Long) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val questions = viewModel.questions.collectAsState()
+    val topicQuestions = questions.value.filter { it.topicId == viewModel.selectedTopic.value.id }
 
     Scaffold(
         contentWindowInsets = WindowInsets(),
@@ -83,9 +80,18 @@ fun QuizPlayScreen(viewModel: QuizViewModel, navController: NavController) {
     ) { padding ->
         QuizQuestionList(
             modifier = Modifier.padding(padding),
-            questions = questions.value.filter { it.topicId == viewModel.selectedTopic.value.id },
+            questions = topicQuestions,
             onBackClick = {
                 navController.popBackStack()
+            },
+            onFinishClick = {
+                questionToAttempt, quizEndTime -> viewModel.addAttempt(
+                    topicId = viewModel.selectedTopic.value.id,
+                    questionToAttempt = questionToAttempt,
+                    questions = topicQuestions,
+                    start = quizStartTime,
+                    end = quizEndTime
+                )
             }
         )
 
@@ -172,20 +178,17 @@ fun QuizPlayTopAppBar(topicName: String, scrollBehavior: TopAppBarScrollBehavior
 }
 
 @Composable
-fun QuizQuestionList(questions: List<Question>, modifier: Modifier = Modifier, onBackClick: () -> Unit) {
+fun QuizQuestionList(questions: List<Question>, modifier: Modifier = Modifier, onBackClick: () -> Unit, onFinishClick: (Map<Int, String>, Long) -> Unit) {
     val fillInQuestionAnswerState = rememberTextFieldState("")
     val (selectedOption, onOptionSelected) = rememberSaveable { mutableStateOf("") }
-    val userAnswers = rememberSaveable { mutableListOf<String>() }
+    val questionToAttempt = rememberSaveable { mutableMapOf<Int, String>() }
     val questionIndex = rememberSaveable { mutableIntStateOf(0) }
     val numberOfQuestions = questions.count()
 
     val correctAnswers = rememberSaveable(questionIndex.intValue) {
-        var count = 0
-        userAnswers.forEachIndexed { index, answer ->
-            if (index < numberOfQuestions && answer == questions[index].correctAnswer)
-                ++count
+        questionToAttempt.count { item ->
+            questions.find { it.id == item.key }?.correctAnswer == item.value
         }
-        count
     }
 
     Column(modifier = modifier.padding(10.dp).fillMaxWidth()) {
@@ -203,13 +206,17 @@ fun QuizQuestionList(questions: List<Question>, modifier: Modifier = Modifier, o
                 modifier = Modifier.align(Alignment.End),
                 onClick = {
                     when (questions[questionIndex.intValue].type) {
-                        QuestionType.FILL_IN -> userAnswers.add(fillInQuestionAnswerState.text.toString().trim())
-                        QuestionType.MULTIPLE_CHOICE -> userAnswers.add(selectedOption.trim())
+                        QuestionType.FILL_IN -> questionToAttempt[questions[questionIndex.intValue].id] = fillInQuestionAnswerState.text.toString().trim()
+                        QuestionType.MULTIPLE_CHOICE -> questionToAttempt[questions[questionIndex.intValue].id] = selectedOption.trim()
                     }
 
                     fillInQuestionAnswerState.setTextAndPlaceCursorAtEnd("")
                     onOptionSelected("")
                     questionIndex.intValue++
+
+                    if (numberOfQuestions == questionIndex.intValue) {
+                        onFinishClick(questionToAttempt, Clock.System.now().toEpochMilliseconds())
+                    }
                 }
             ) {
                 Text(

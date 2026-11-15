@@ -3,7 +3,6 @@ package com.example.quizapp.data.model
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
-import kotlinx.serialization.Serializable
 
 @Entity(
     foreignKeys = [ForeignKey(

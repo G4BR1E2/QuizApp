@@ -186,15 +186,32 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
         }
     }
 
-    fun addAttempt(attempt: Attempt) {
+    fun addAttempt(
+        topicId: Int,
+        questionToAttempt: Map<Int, String>,
+        questions: List<Question>,
+        start: Long,
+        end: Long
+    ) {
         viewModelScope.launch {
-            attemptDao.insertAttempt(attempt)
+            val nextAttemptNumber = attemptDao.getNumberOfAttempts(topicId) + 1
+            val score = questions.count { it.correctAnswer == questionToAttempt[it.id] }
+
+            attemptDao.insertAttempt(Attempt(
+                attemptNumber = nextAttemptNumber,
+                score = score,
+                totalQuestions = questions.count(),
+                topicId = topicId,
+                questionToAttempt = questionToAttempt,
+                start = start,
+                end = end
+            ))
         }
     }
 
     fun updateAttempt(attempt: Attempt) {
         viewModelScope.launch {
-            attemptDao.insertAttempt(attempt)
+            attemptDao.updateAttempt(attempt)
         }
     }
 
