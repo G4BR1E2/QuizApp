@@ -21,6 +21,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.quizapp.navigation.AppNavigation
 import com.example.quizapp.navigation.Destination
+import com.example.quizapp.navigation.NewTopicRoute
 import com.example.quizapp.viewmodel.QuizViewModel
 
 @Composable
@@ -36,7 +37,7 @@ fun NavBar(modifier: Modifier = Modifier, viewModel: QuizViewModel, navControlle
 
     isVisibleBottomBar.value = Destination.entries.any { destination ->
         selectedDestination?.hierarchy?.any {
-            it.hasRoute(destination.route::class)
+            it.hasRoute(destination.route::class) || it.hasRoute(NewTopicRoute::class)
         } == true
     }
 

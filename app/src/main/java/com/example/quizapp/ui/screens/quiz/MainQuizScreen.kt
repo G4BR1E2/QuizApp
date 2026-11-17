@@ -20,7 +20,12 @@ enum class QuizTab(val title: String) {
 }
 
 @Composable
-fun MainQuizScreen(viewModel: QuizViewModel, onNavigateToQuizPlayScreen: (Topic) -> Unit) {
+fun MainQuizScreen(
+    viewModel: QuizViewModel,
+    onNavigateToQuizPlayScreen: (Topic) -> Unit,
+    onNavigateToNewTopicDialog: () -> Unit,
+    onNavigateToNewQuestionDialog: (Topic) -> Unit
+) {
     val selectedDestination = rememberSaveable { mutableStateOf(QuizTab.CHOOSE_QUIZ_TOPIC) }
     val topics = viewModel.topics.collectAsState()
     val questions = viewModel.questions.collectAsState()
@@ -42,10 +47,12 @@ fun MainQuizScreen(viewModel: QuizViewModel, onNavigateToQuizPlayScreen: (Topic)
 
             when (selectedDestination.value) {
                 QuizTab.CHOOSE_QUIZ_TOPIC -> ChooseQuizTopicTab(
-                    topics = topics.value.filter { topic -> questions.value.count { it.topicId == topic.id } > 0  },
-                    onTopicPlay = {
-                        topic -> onNavigateToQuizPlayScreen(topic)
-                    },
+                    topics = topics.value,
+                    questions = questions.value,
+                    attempts = attempts.value,
+                    onTopicPlay = { topic -> onNavigateToQuizPlayScreen(topic) },
+                    onAddTopic = onNavigateToNewTopicDialog,
+                    onAddQuestion = { topic -> onNavigateToNewQuestionDialog(topic) }
                 )
                 QuizTab.QUIZ_ATTEMPTS -> QuizAttemptsTab(
                     attempts = attempts.value,

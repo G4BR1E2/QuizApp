@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AttemptDao {
-    @Query("SELECT * FROM Attempt ORDER BY id ASC")
+    @Query("SELECT * FROM Attempt ORDER BY id DESC")
     fun getAllAttempts(): Flow<List<Attempt>>
 
     @Query("SELECT COUNT(*) FROM Attempt WHERE topicId = :topicId")

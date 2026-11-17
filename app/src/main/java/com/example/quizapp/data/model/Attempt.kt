@@ -12,7 +12,7 @@ import androidx.room.PrimaryKey
         onDelete = ForeignKey.CASCADE
     )]
 )
-class Attempt(
+data class Attempt(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val attemptNumber: Int,
