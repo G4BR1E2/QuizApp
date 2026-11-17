@@ -1,8 +1,8 @@
-**Quiz app - a modern Android app built with Kotlin and Jetpack Compose**
+## **Quiz app - a modern Android app built with Kotlin and Jetpack Compose**
 
-This project is a mobile Android app that allows you to play quizzes with the topics and questions you create yourself.
-The app automatically saves the created topics on your device using JSON format
-It was built in android studio using Kotlin and Jetpack Compose, the modern and reccommended way by Android.
+This project is a mobile Android app that allows you to play quizzes with the topics and questions you create yourself. It also allows you to view your past attempts.
+The app automatically saves the created topics on your device using Room database.
+It was built in Android Studio using Kotlin and Jetpack Compose, the modern and reccommended way by Android.
 The build system that the project is using is gradle.
 
 How to try it:
@@ -22,6 +22,9 @@ How to use the app:
 4. Play quizzes: Tap the Quiz tab in the bottom navigation bar and click play on any of the topics you created.
 <img width="180" height="390" alt="Screenshot_20261115_142750_QuizApp" src="https://github.com/user-attachments/assets/59cd8702-283f-436d-b755-5d6f67f914cb" />
 <img width="180" height="390" alt="Screenshot_20261115_142841_QuizApp" src="https://github.com/user-attachments/assets/fac104e9-df40-4480-b687-b6e39d5b7149" />
+
+5. View your attempts by tapping the Attempts tab in the top navigation bar after finishing a quiz.
+<img width="180" height="390" alt="Screenshot_20261115_225901_QuizApp" src="https://github.com/user-attachments/assets/672c68cd-b358-4f39-b0f9-573012c678f2" />
 
 - **Language**: [Kotlin](https://kotlinlang.org/) (v2.4+)
 - **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose) (Material 3)
