@@ -159,7 +159,7 @@ fun TopicCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(modifier = Modifier.weight(1f, fill = false)) {
+                Column(modifier = Modifier.weight(1f, fill = false).align(Alignment.CenterVertically)) {
                     Text(
                         text = topic.name,
                         style = MaterialTheme.typography.titleLarge

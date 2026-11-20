@@ -16,10 +16,10 @@ data class Question(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val topicId: Int,
-    var questionText: String,
+    val questionText: String,
     val type: QuestionType,
-    var options: List<String>? = null,
-    var correctAnswer: String
+    val options: List<String>? = null,
+    val correctAnswer: String
 )
 
 

@@ -15,62 +15,43 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.foundation.text.input.setTextAndSelectAll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.RadioButtonChecked
-import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.quizapp.data.model.Question
-import com.example.quizapp.data.model.QuestionType
 import com.example.quizapp.ui.components.DeleteDialog
 import com.example.quizapp.viewmodel.QuizViewModel
 
@@ -110,7 +91,6 @@ fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController)
 
         if (viewModel.isOpenNewQuestionDialog.value) {
             NewQuestionDialog(
-                text = "Enter a new question",
                 topicId = viewModel.selectedTopic.value.id,
                 onDismissRequest = { viewModel.onCloseNewQuestionDialog() },
                 onConfirmRequest = {
@@ -121,9 +101,7 @@ fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController)
         }
         if (viewModel.isOpenDeleteQuestionDialog.value) {
             DeleteQuestionDialog(
-                onDismissRequest = {
-                    viewModel.onCloseDeleteQuestionDialog()
-                },
+                onDismissRequest = { viewModel.onCloseDeleteQuestionDialog() },
                 onConfirmRequest = {
                     viewModel.deleteQuestion(viewModel.selectedQuestion.value)
                     viewModel.onCloseDeleteQuestionDialog()
@@ -132,7 +110,6 @@ fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController)
         }
         if (viewModel.isOpenEditQuestionDialog.value) {
             EditTopicQuestionDialog(
-                text = "Edit the selected question",
                 selectedQuestion = viewModel.selectedQuestion.value,
                 onDismissRequest = { viewModel.onCloseEditQuestionDialog() },
                 onConfirmRequest = {
@@ -145,11 +122,10 @@ fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController)
 }
 
 @Composable
-fun EditTopicQuestionDialog(text: String, selectedQuestion: Question, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
+fun EditTopicQuestionDialog(selectedQuestion: Question, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
     TopicQuestionDialog(
-        text = text,
+        text = "Edit question",
         selectedQuestion = selectedQuestion,
-        topicId = 0,
         onDismissRequest = onDismissRequest,
         onConfirmRequest = onConfirmRequest,
     )
@@ -187,140 +163,13 @@ fun TopicQuestionsTopAppBar(topicName: String, scrollBehavior: TopAppBarScrollBe
 }
 
 @Composable
-fun NewQuestionDialog(text: String, topicId: Int, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
+fun NewQuestionDialog(topicId: Int, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
     TopicQuestionDialog(
-        text = text,
+        text = "Enter a new question",
         topicId = topicId,
         onDismissRequest = onDismissRequest,
         onConfirmRequest = onConfirmRequest,
     )
-}
-
-@Composable
-fun MultipleChoiceQuestion(choices: SnapshotStateList<String>, answer: MutableState<String>) {
-    val newChoiceTextFieldState = rememberTextFieldState("")
-    val questionAnswerTextFieldState = rememberTextFieldState(answer.value)
-
-    if (answer.value != "") {
-        OutlinedTextField(
-            state = questionAnswerTextFieldState,
-            readOnly = true,
-            label = { Text(text = "Answer", fontWeight = FontWeight.Bold) },
-            lineLimits = TextFieldLineLimits.SingleLine,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            trailingIcon = {
-                IconButton(onClick = {
-                    answer.value = ""
-                }) {
-                    Icon(imageVector = Icons.Default.RemoveCircle, contentDescription = "Delete answer")
-                }
-            }
-        )
-    }
-
-    LazyColumn(
-        modifier = Modifier.requiredHeightIn(max = 225.dp)
-    ) {
-        itemsIndexed(choices, key = { _, choice -> choice}) { index, choice ->
-            OutlinedTextField(
-                state = rememberTextFieldState(choice),
-                readOnly = true,
-                label = { Text(text = "Choice ${index + 1}") },
-                lineLimits = TextFieldLineLimits.SingleLine,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                trailingIcon = {
-                    IconButton(onClick = { choices.removeAt(index) }) {
-                        Icon(imageVector = Icons.Default.RemoveCircle, contentDescription = "Delete choice")
-                    }
-                },
-                leadingIcon = {
-                    IconButton(onClick = {
-                        answer.value = choice
-                        questionAnswerTextFieldState.edit { replace(0, length, answer.value) }
-                    }) {
-                        Icon(imageVector = Icons.Default.QuestionAnswer, contentDescription = "Mark as question answer")
-                    }
-                }
-            )
-        }
-    }
-
-    OutlinedTextField(
-        state = newChoiceTextFieldState,
-        label = { Text(text = "New choice") },
-        lineLimits = TextFieldLineLimits.SingleLine,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-        onKeyboardAction = {
-            val choiceText = newChoiceTextFieldState.text.trim().toString()
-            if (choiceText.isBlank() || choiceText == "Enter a choice" || choiceText == "Already entered") {
-                newChoiceTextFieldState.setTextAndSelectAll("Enter a choice")
-            } else if (choices.contains(choiceText)) {
-                newChoiceTextFieldState.setTextAndSelectAll("Already entered")
-            }
-            else {
-                choices.add(choiceText)
-                newChoiceTextFieldState.setTextAndPlaceCursorAtEnd("")
-            }
-        }
-    )
-}
-
-@Composable
-fun FillInQuestion(answer: MutableState<String>) {
-    val questionAnswerTextFieldState = rememberTextFieldState(answer.value)
-    answer.value = questionAnswerTextFieldState.text.trim().toString()
-
-    OutlinedTextField(
-        state = questionAnswerTextFieldState,
-        label = { Text("Question answer") },
-        modifier = Modifier.padding(bottom = 8.dp),
-        lineLimits = TextFieldLineLimits.SingleLine,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-        onKeyboardAction = {
-            if (answer.value.isBlank() || answer.value == "Enter an answer") {
-                questionAnswerTextFieldState.setTextAndSelectAll("Enter an answer")
-            }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun QuestionTypeDropdownMenu(selectedType: MutableState<QuestionType>, inputForm: @Composable (() -> Unit)) {
-    val expanded = rememberSaveable { mutableStateOf(false) }
-    val questionTypeTextFieldState = rememberTextFieldState(selectedType.value.text)
-
-    ExposedDropdownMenuBox(
-        expanded = expanded.value,
-        onExpandedChange = { expanded.value = !expanded.value }
-    ) {
-        TextField(
-            modifier = Modifier.menuAnchor(
-                type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
-                enabled = true
-            ),
-            readOnly = true,
-            state = questionTypeTextFieldState,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded.value) }
-        )
-        ExposedDropdownMenu(
-            expanded = expanded.value,
-            onDismissRequest = { expanded.value = false }
-        ) {
-            QuestionType.entries.forEach { type ->
-                DropdownMenuItem(
-                    text = { Text(text = type.text) },
-                    onClick = {
-                        questionTypeTextFieldState.edit { replace(0, questionTypeTextFieldState.text.length, type.text) }
-                        selectedType.value = type
-                        expanded.value = false
-                    }
-                )
-            }
-        }
-    }
-
-    inputForm()
 }
 
 @Composable
