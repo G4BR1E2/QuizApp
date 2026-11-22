@@ -38,9 +38,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -53,7 +55,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.navigation.NavController
 import com.example.quizapp.data.model.Question
 import com.example.quizapp.data.model.QuestionType
 import com.example.quizapp.viewmodel.QuizViewModel
@@ -61,59 +62,68 @@ import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuizPlayScreen(viewModel: QuizViewModel, navController: NavController, quizStartTime: Long) {
+fun QuizPlayScreen(
+    topicId: Int,
+    viewModel: QuizViewModel,
+    onBackClick: () -> Unit
+) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val questions = viewModel.questions.collectAsState()
-    val topicQuestions = questions.value.filter { it.topicId == viewModel.selectedTopic.value.id }
+    val questions by viewModel.questions.collectAsState()
+    val topics by viewModel.topics.collectAsState()
+    val topic = topics.find { it.id == topicId }
+    val topicQuestions = questions.filter { it.topicId == topicId }
+
+    val start = rememberSaveable { Clock.System.now().toEpochMilliseconds() }
+
+    var isOpenQuitQuizDialog by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(),
         topBar = {
             QuizPlayTopAppBar(
-                topicName = viewModel.selectedTopic.value.name,
+                topicName = topic?.name ?: "",
                 scrollBehavior = scrollBehavior,
-                onBackClick = {
-                    viewModel.onOpenQuitQuizDialog()
-                }
+                onBackClick = { isOpenQuitQuizDialog =true }
             )
         }
     ) { padding ->
         QuizQuestionList(
             modifier = Modifier.padding(padding),
             questions = topicQuestions,
-            onBackClick = {
-                navController.popBackStack()
-            },
+            onBackClick = onBackClick,
             onFinishClick = {
                 questionToAttempt, quizEndTime -> viewModel.addAttempt(
-                    topicId = viewModel.selectedTopic.value.id,
+                    topicId = topic?.id ?: -1,
                     questionToAttempt = questionToAttempt,
                     questions = topicQuestions,
-                    start = quizStartTime,
+                    start = start,
                     end = quizEndTime
                 )
             }
         )
 
-        if (viewModel.isOpenQuitQuizDialog.value) {
+        if (isOpenQuitQuizDialog) {
             QuitQuizDialog(
-                topicName = viewModel.selectedTopic.value.name,
-                onDismissRequest = { viewModel.onCloseQuitQuizDialog() },
+                topicName = topic?.name ?: "",
+                onDismissRequest = { isOpenQuitQuizDialog = false },
                 onConfirmRequest = {
-                    navController.popBackStack()
-                    viewModel.onCloseQuitQuizDialog()
+                    onBackClick()
                 }
             )
         }
     }
 
     BackHandler() {
-        viewModel.onOpenQuitQuizDialog()
+        isOpenQuitQuizDialog = true
     }
 }
 
 @Composable
-fun QuitQuizDialog(topicName: String, onDismissRequest: () -> Unit, onConfirmRequest: () -> Unit) {
+fun QuitQuizDialog(
+    topicName: String,
+    onDismissRequest: () -> Unit,
+    onConfirmRequest: () -> Unit
+) {
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(dismissOnBackPress = true)
@@ -157,7 +167,11 @@ fun QuitQuizDialog(topicName: String, onDismissRequest: () -> Unit, onConfirmReq
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuizPlayTopAppBar(topicName: String, scrollBehavior: TopAppBarScrollBehavior, onBackClick: () -> Unit) {
+fun QuizPlayTopAppBar(
+    topicName: String,
+    scrollBehavior: TopAppBarScrollBehavior,
+    onBackClick: () -> Unit
+) {
     CenterAlignedTopAppBar(
         modifier = Modifier,
         scrollBehavior = scrollBehavior,
@@ -178,7 +192,12 @@ fun QuizPlayTopAppBar(topicName: String, scrollBehavior: TopAppBarScrollBehavior
 }
 
 @Composable
-fun QuizQuestionList(questions: List<Question>, modifier: Modifier = Modifier, onBackClick: () -> Unit, onFinishClick: (Map<Int, String>, Long) -> Unit) {
+fun QuizQuestionList(
+    questions: List<Question>,
+    modifier: Modifier = Modifier,
+    onBackClick: () -> Unit,
+    onFinishClick: (Map<Int, String>, Long) -> Unit
+) {
     val fillInQuestionAnswerState = rememberTextFieldState("")
     val (selectedOption, onOptionSelected) = rememberSaveable { mutableStateOf("") }
     val questionToAttempt = rememberSaveable { mutableMapOf<Int, String>() }
@@ -300,7 +319,9 @@ fun QuizQuestionCard(
 }
 
 @Composable
-fun FillInQuestionAnswerForm(textFieldState: TextFieldState) {
+fun FillInQuestionAnswerForm(
+    textFieldState: TextFieldState
+) {
     TextField(
         modifier = Modifier.fillMaxWidth(),
         state = textFieldState
@@ -308,7 +329,11 @@ fun FillInQuestionAnswerForm(textFieldState: TextFieldState) {
 }
 
 @Composable
-fun MultipleChoiceQuestionAnswerForm(options: List<String>?, selectedOption: String, onOptionSelected: (String) -> Unit) {
+fun MultipleChoiceQuestionAnswerForm(
+    options: List<String>?,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
     Column(
         modifier = Modifier.selectableGroup(),
         verticalArrangement = Arrangement.spacedBy(4.dp)

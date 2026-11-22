@@ -1,5 +1,6 @@
 package com.example.quizapp.ui.screens.topicQuestions
 
+import android.os.Parcelable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,26 +41,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.example.quizapp.data.model.Question
 import com.example.quizapp.data.model.QuestionType
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data class InvalidQuestionError(
     val questionTextError: String? = null,
     val questionOptionsError: String? = null,
     val questionAnswerError: String? = null
-) {
+) : Parcelable {
     val hasError: Boolean get() = questionTextError != null || questionOptionsError != null || questionAnswerError != null
 }
 
@@ -82,14 +82,18 @@ fun Question.validate(): InvalidQuestionError {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopicQuestionDialog(text: String, selectedQuestion: Question? = null, topicId: Int? = null, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
+fun TopicQuestionDialog(dialogHeader: @Composable () -> Unit, selectedQuestion: Question? = null, topicId: Int? = null, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
     val questionTextTextFieldState = rememberTextFieldState(selectedQuestion?.questionText ?: "")
-    val fillInQuestionTextFieldState = rememberTextFieldState(selectedQuestion?.correctAnswer ?: "")
+    val fillInQuestionTextFieldState = rememberTextFieldState(
+        if (selectedQuestion?.type == QuestionType.FILL_IN) selectedQuestion.correctAnswer else ""
+    )
     val (selectedType, setSelectedType) = rememberSaveable { mutableStateOf(selectedQuestion?.type ?: QuestionType.FILL_IN) }
     val options = rememberSaveable { selectedQuestion?.options?.toMutableStateList() ?: mutableStateListOf() }
-    var correctAnswerMultipleChoice by rememberSaveable { mutableStateOf(selectedQuestion?.correctAnswer ?: "") }
+    var correctAnswerMultipleChoice by rememberSaveable { mutableStateOf(
+        if (selectedQuestion?.type == QuestionType.MULTIPLE_CHOICE) selectedQuestion.correctAnswer else ""
+    ) }
 
-    var errors by remember { mutableStateOf(InvalidQuestionError()) }
+    var errors by rememberSaveable { mutableStateOf(InvalidQuestionError()) }
 
     val confirm = {
         val question = Question(
@@ -117,55 +121,61 @@ fun TopicQuestionDialog(text: String, selectedQuestion: Question? = null, topicI
             color = MaterialTheme.colorScheme.surface
         ) {
             Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .fillMaxWidth()
-                    .padding(20.dp),
+                modifier = Modifier.padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 8.dp),
             ) {
-                Text(
-                    fontSize = 24.sp,
-                    text = text,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    state = questionTextTextFieldState,
-                    isError = errors.questionTextError != null,
-                    label = { Text("Question") },
-                    supportingText = { errors.questionTextError?.let { Text(text = it) } },
-                )
 
-                QuestionTypeDropdownMenu(
-                    selectedType = selectedType,
-                    onTypeSelected = {
-                        type -> setSelectedType(type)
-                        errors = InvalidQuestionError()
-                    }
-                )
+                dialogHeader()
 
-                when (selectedType) {
-                    QuestionType.FILL_IN -> {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            modifier = Modifier.fillMaxWidth(),
-                            state = fillInQuestionTextFieldState,
-                            isError = errors.questionAnswerError != null,
-                            label = { Text("Question answer") },
-                            supportingText = { errors.questionAnswerError?.let { Text(text = it) } },
-                            lineLimits = TextFieldLineLimits.SingleLine,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            onKeyboardAction = { confirm() }
-                        )
-                    }
-                    QuestionType.MULTIPLE_CHOICE -> MultipleChoiceQuestion(
-                        choices = options,
-                        answer = correctAnswerMultipleChoice,
-                        errors = errors,
-                        onChoiceAdded = { choice -> options.add(choice) },
-                        onChoiceRemoved = { choice -> options.remove(choice) },
-                        onAnswerMarked = { answer -> correctAnswerMultipleChoice = answer }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f, false)
+                        .verticalScroll(rememberScrollState())
+                        .fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        state = questionTextTextFieldState,
+                        isError = errors.questionTextError != null,
+                        label = { Text("Question") },
+                        supportingText = { errors.questionTextError?.let { Text(text = it) } },
                     )
+
+                    QuestionTypeDropdownMenu(
+                        selectedType = selectedType,
+                        onTypeSelected = {
+                                type -> setSelectedType(type)
+                            errors = InvalidQuestionError()
+                        }
+                    )
+
+                    when (selectedType) {
+                        QuestionType.FILL_IN -> {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                modifier = Modifier.fillMaxWidth(),
+                                state = fillInQuestionTextFieldState,
+                                isError = errors.questionAnswerError != null,
+                                label = { Text("Question answer") },
+                                supportingText = { errors.questionAnswerError?.let { Text(text = it) } },
+                                lineLimits = TextFieldLineLimits.SingleLine,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                onKeyboardAction = { confirm() }
+                            )
+                        }
+                        QuestionType.MULTIPLE_CHOICE ->  {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            MultipleChoiceQuestion(
+                                choices = options,
+                                answer = correctAnswerMultipleChoice,
+                                errors = errors,
+                                onChoiceAdded = { choice -> options.add(choice) },
+                                onChoiceRemoved = { choice -> options.remove(choice) },
+                                onAnswerMarked = { answer -> correctAnswerMultipleChoice = answer }
+                            )
+                        }
+                    }
                 }
 
                 Row(
@@ -187,7 +197,10 @@ fun TopicQuestionDialog(text: String, selectedQuestion: Question? = null, topicI
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuestionTypeDropdownMenu(selectedType: QuestionType, onTypeSelected: (QuestionType) -> Unit) {
+fun QuestionTypeDropdownMenu(
+    selectedType: QuestionType,
+    onTypeSelected: (QuestionType) -> Unit
+) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val questionTypeTextFieldState = rememberTextFieldState(selectedType.text)
 
@@ -260,6 +273,7 @@ fun MultipleChoiceQuestion(
         }
     }
 
+    Text(text = "Choices:")
     Column(
         modifier = Modifier.selectableGroup(),
         verticalArrangement = Arrangement.spacedBy(8.dp)

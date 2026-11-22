@@ -41,8 +41,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -50,71 +52,63 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.example.quizapp.data.model.Question
 import com.example.quizapp.ui.components.DeleteDialog
 import com.example.quizapp.viewmodel.QuizViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController) {
+fun TopicQuestionsScreen(
+    topicId: Int,
+    viewModel: QuizViewModel,
+    onTopAppBarBackClick: () -> Unit,
+    onNavigateToNewQuestionDialog: (topicId: Int) -> Unit,
+    onNavigateToEditQuestionDialog: (questionId: Int) -> Unit
+) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val questions = viewModel.questions.collectAsState()
+    val questions by viewModel.questions.collectAsState()
+    val topics = viewModel.topics.collectAsState()
+    val topic = topics.value.find { it.id == topicId }
+
+    var isOpenDeleteQuestionDialog by rememberSaveable { mutableStateOf(false) }
+    var selectedQuestionId = rememberSaveable { -1 }
 
     Scaffold(
         contentWindowInsets = WindowInsets(),
         topBar = {
             TopicQuestionsTopAppBar(
-                topicName = viewModel.selectedTopic.value.name,
+                topicName = topic?.name ?: "",
                 scrollBehavior = scrollBehavior,
-                onBackClick = {
-                    navController.popBackStack()
-                }
+                onBackClick = onTopAppBarBackClick
             )
         },
         floatingActionButton = {
-        ExtendedFloatingActionButton(
-            modifier = Modifier,
-            onClick = { viewModel.onOpenNewQuestionDialog() },
-            icon = { Icon(Icons.Filled.Add, "Add topic")},
-            text = { Text("Add question") }
-        )},
+            ExtendedFloatingActionButton(
+                modifier = Modifier,
+                onClick = { onNavigateToNewQuestionDialog(topicId) },
+                icon = { Icon(Icons.Filled.Add, "Add topic")},
+                text = { Text("Add question") }
+            )
+        },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ) { padding ->
         QuestionList(
-            topicId = viewModel.selectedTopic.value.id,
-            questions = questions.value,
+            topicId = topicId,
+            questions = questions,
             modifier = Modifier.padding(padding),
-            onEditQuestionClick = { question -> viewModel.onOpenEditQuestionDialog(question) },
-            onDeleteQuestionClick = { question -> viewModel.onOpenDeleteQuestionDialog(question) }
+            onEditQuestionClick = { questionId -> onNavigateToEditQuestionDialog(questionId) },
+            onDeleteQuestionClick = {
+                questionId -> selectedQuestionId = questionId
+                isOpenDeleteQuestionDialog = true
+            }
         )
 
-        if (viewModel.isOpenNewQuestionDialog.value) {
-            NewQuestionDialog(
-                topicId = viewModel.selectedTopic.value.id,
-                onDismissRequest = { viewModel.onCloseNewQuestionDialog() },
-                onConfirmRequest = {
-                    question -> viewModel.addQuestion(question = question)
-                    viewModel.onCloseNewQuestionDialog()
-                }
-            )
-        }
-        if (viewModel.isOpenDeleteQuestionDialog.value) {
+        if (isOpenDeleteQuestionDialog) {
             DeleteQuestionDialog(
-                onDismissRequest = { viewModel.onCloseDeleteQuestionDialog() },
+                onDismissRequest = { isOpenDeleteQuestionDialog = false },
                 onConfirmRequest = {
-                    viewModel.deleteQuestion(viewModel.selectedQuestion.value)
-                    viewModel.onCloseDeleteQuestionDialog()
-                }
-            )
-        }
-        if (viewModel.isOpenEditQuestionDialog.value) {
-            EditTopicQuestionDialog(
-                selectedQuestion = viewModel.selectedQuestion.value,
-                onDismissRequest = { viewModel.onCloseEditQuestionDialog() },
-                onConfirmRequest = {
-                    question -> viewModel.updateQuestion(question)
-                    viewModel.onCloseEditQuestionDialog()
+                    viewModel.deleteQuestion(questions.find { it.id == selectedQuestionId })
+                    isOpenDeleteQuestionDialog = false
                 }
             )
         }
@@ -122,19 +116,19 @@ fun TopicQuestionsScreen(viewModel: QuizViewModel, navController: NavController)
 }
 
 @Composable
-fun EditTopicQuestionDialog(selectedQuestion: Question, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
-    TopicQuestionDialog(
-        text = "Edit question",
-        selectedQuestion = selectedQuestion,
-        onDismissRequest = onDismissRequest,
-        onConfirmRequest = onConfirmRequest,
-    )
-}
-
-@Composable
-fun DeleteQuestionDialog(onDismissRequest: () -> Unit, onConfirmRequest: () -> Unit) {
+fun DeleteQuestionDialog(
+    onDismissRequest: () -> Unit,
+    onConfirmRequest: () -> Unit
+) {
     DeleteDialog(
-        text = "Are you sure you want to delete this question?",
+        dialogHeader = {
+            Text(
+                fontSize = 24.sp,
+                text = "Are you sure you want to delete this question?",
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        },
         onDismissRequest = onDismissRequest,
         onConfirmRequest = onConfirmRequest
     )
@@ -142,7 +136,11 @@ fun DeleteQuestionDialog(onDismissRequest: () -> Unit, onConfirmRequest: () -> U
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopicQuestionsTopAppBar(topicName: String, scrollBehavior: TopAppBarScrollBehavior, onBackClick: () -> Unit) {
+fun TopicQuestionsTopAppBar(
+    topicName: String,
+    scrollBehavior: TopAppBarScrollBehavior,
+    onBackClick: () -> Unit
+) {
     CenterAlignedTopAppBar(
         modifier = Modifier,
         scrollBehavior = scrollBehavior,
@@ -163,22 +161,12 @@ fun TopicQuestionsTopAppBar(topicName: String, scrollBehavior: TopAppBarScrollBe
 }
 
 @Composable
-fun NewQuestionDialog(topicId: Int, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
-    TopicQuestionDialog(
-        text = "Enter a new question",
-        topicId = topicId,
-        onDismissRequest = onDismissRequest,
-        onConfirmRequest = onConfirmRequest,
-    )
-}
-
-@Composable
 fun QuestionList(
     questions: List<Question>,
     modifier: Modifier = Modifier,
     topicId: Int,
-    onEditQuestionClick: (Question) -> Unit,
-    onDeleteQuestionClick: (Question) -> Unit
+    onEditQuestionClick: (Int) -> Unit,
+    onDeleteQuestionClick: (Int) -> Unit
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(10.dp),
@@ -187,24 +175,28 @@ fun QuestionList(
         items(questions.filter { it.topicId == topicId }) { question ->
             QuestionCard(
                 question = question,
-                onEditClick = { onEditQuestionClick(question) },
-                onDeleteClick = { onDeleteQuestionClick(question) }
+                onEditClick = { onEditQuestionClick(question.id) },
+                onDeleteClick = { onDeleteQuestionClick(question.id) }
             )
         }
     }
 }
 
 @Composable
-fun QuestionCard(question: Question, onEditClick: () -> Unit, onDeleteClick: () -> Unit) {
-    val expanded = rememberSaveable { mutableStateOf(false) }
+fun QuestionCard(
+    question: Question,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
     val arrowRoatation = animateFloatAsState(
-        targetValue = if (expanded.value) 180f else 0f,
+        targetValue = if (expanded) 180f else 0f,
     )
 
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = {expanded.value = !expanded.value}),
+            .clickable(onClick = {expanded = !expanded}),
         shape = RoundedCornerShape(10.dp),
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.elevatedCardColors(
@@ -253,7 +245,7 @@ fun QuestionCard(question: Question, onEditClick: () -> Unit, onDeleteClick: () 
                 )
 
                 AnimatedVisibility(
-                    visible = expanded.value,
+                    visible = expanded,
                     enter = expandVertically(expandFrom = Alignment.Top),
                     exit = shrinkVertically(shrinkTowards = Alignment.Top)
                 ) {
@@ -266,12 +258,9 @@ fun QuestionCard(question: Question, onEditClick: () -> Unit, onDeleteClick: () 
                                     fontSize = 18.sp
                                 )
                             }
-                            Column() {
-                                question.options!!.forEach { choice ->
-                                    Row(
-                                        modifier = Modifier.padding(start = 20.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
+                            Column(modifier = Modifier.padding(start = 20.dp)) {
+                                question.options.forEach { choice ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             modifier = Modifier.size(height = 16.dp, width = 16.dp),
                                             imageVector = Icons.Filled.RadioButtonChecked,

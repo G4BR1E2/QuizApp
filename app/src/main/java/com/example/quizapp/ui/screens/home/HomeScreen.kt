@@ -30,7 +30,11 @@ fun HomeScreen(viewModel: QuizViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun NavBar(modifier: Modifier = Modifier, viewModel: QuizViewModel, navController: NavHostController) {
+fun NavBar(
+    modifier: Modifier = Modifier,
+    viewModel: QuizViewModel,
+    navController: NavHostController
+) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val selectedDestination = backStackEntry?.destination
     val isVisibleBottomBar = rememberSaveable { mutableStateOf(true) }

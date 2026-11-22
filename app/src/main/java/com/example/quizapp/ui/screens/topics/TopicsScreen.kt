@@ -1,6 +1,7 @@
 package com.example.quizapp.ui.screens.topics
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -25,26 +25,34 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.example.quizapp.data.model.Topic
 import com.example.quizapp.ui.components.DeleteDialog
 import com.example.quizapp.viewmodel.QuizViewModel
 
 @Composable
-fun TopicsScreen(viewModel: QuizViewModel, onNavigateToTopicQuestions: (Topic) -> Unit, onNavigateToNewTopicDialog: () -> Unit) {
+fun TopicsScreen(
+    viewModel: QuizViewModel,
+    onNavigateToTopicQuestions: (Int) -> Unit,
+    onNavigateToNewTopicDialog: () -> Unit,
+    onNavigateToEditTopicDialog: (Int) -> Unit
+) {
     val topics = viewModel.topics.collectAsState()
+    var selectedTopicId = rememberSaveable { -1 }
+    var isOpenDeleteTopicDialog by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         contentWindowInsets = WindowInsets.statusBars,
@@ -56,31 +64,38 @@ fun TopicsScreen(viewModel: QuizViewModel, onNavigateToTopicQuestions: (Topic) -
             text = { Text("Add topic") }
         )
     }) { padding ->
-        TopicList(
-            modifier = Modifier.padding(padding),
-            topics = topics.value,
-            onTopicClick = onNavigateToTopicQuestions,
-            onEditTopicClick = { topic -> viewModel.onOpenEditTopicDialog(topic) },
-            onDeleteTopicClick = { topic -> viewModel.onOpenDeleteTopicDialog(topic) }
-        )
-
-        if (viewModel.isOpenDeleteTopicDialog.value) {
-            DeleteTopicDialog(
-                topicName = viewModel.selectedTopic.value.name,
-                onDismissRequest = { viewModel.onCloseDeleteTopicDialog() },
-                onConfirmRequest = {
-                    viewModel.deleteTopic(viewModel.selectedTopic.value)
-                    viewModel.onCloseDeleteTopicDialog()
+        if (topics.value.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    modifier = Modifier.padding(20.dp),
+                    text = "No topics yet. Create a topic to get started.",
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        else {
+            TopicList(
+                modifier = Modifier.padding(padding),
+                topics = topics.value,
+                onTopicClick = onNavigateToTopicQuestions,
+                onEditTopicClick = onNavigateToEditTopicDialog,
+                onDeleteTopicClick = {
+                    topicId ->  selectedTopicId = topicId
+                    isOpenDeleteTopicDialog = true
                 }
             )
         }
-        if (viewModel.isOpenEditTopicDialog.value) {
-            EditTopicDialog(
-                selectedTopic = viewModel.selectedTopic.value,
-                onDismissRequest = { viewModel.onCloseEditTopicDialog() },
+
+        if (isOpenDeleteTopicDialog) {
+            DeleteTopicDialog(
+                topicName = topics.value.find { it.id == selectedTopicId }?.name ?: "",
+                onDismissRequest = { isOpenDeleteTopicDialog = false },
                 onConfirmRequest = {
-                    updatedTopic -> viewModel.updateTopic(updatedTopic)
-                    viewModel.onCloseEditTopicDialog()
+                    viewModel.deleteTopic(topics.value.find { it.id == selectedTopicId })
+                    isOpenDeleteTopicDialog = false
                 }
             )
         }
@@ -90,74 +105,26 @@ fun TopicsScreen(viewModel: QuizViewModel, onNavigateToTopicQuestions: (Topic) -
 @Composable
 fun DeleteTopicDialog(topicName: String, onDismissRequest: () -> Unit, onConfirmRequest: () -> Unit) {
     DeleteDialog(
-        text = "Are you sure you want to delete the $topicName topic?",
+        dialogHeader = {
+            Text(
+                fontSize = 24.sp,
+                text = "Are you sure you want to delete the $topicName topic?",
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        },
         onDismissRequest = onDismissRequest,
         onConfirmRequest = onConfirmRequest
     )
 }
 
 @Composable
-fun EditTopicDialog(selectedTopic: Topic, onDismissRequest: () -> Unit, onConfirmRequest: (Topic) -> Unit) {
-    val topicNameTextFieldState = rememberTextFieldState(selectedTopic.name)
-    val topicDescriptionTextFieldState = rememberTextFieldState(selectedTopic.description ?: "")
-
-    Dialog(onDismissRequest = onDismissRequest) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Text(
-                    fontSize = 24.sp,
-                    text = "Enter a new topic",
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                OutlinedTextField(
-                    state = topicNameTextFieldState,
-                    label = { Text("Topic name") },
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                OutlinedTextField(
-                    state = topicDescriptionTextFieldState,
-                    label = { Text("Topic description (optional)") },
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismissRequest) {
-                        Text("Cancel")
-                    }
-
-                    TextButton(onClick = {
-                        val updatedTopic = selectedTopic.copy(
-                            name = topicNameTextFieldState.text.toString(),
-                            description = topicDescriptionTextFieldState.text.toString()
-                        )
-                        onConfirmRequest(updatedTopic)
-                    }) {
-                        Text("Confirm")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun TopicList(
     topics: List<Topic>,
     modifier: Modifier = Modifier,
-    onTopicClick: (Topic) -> Unit,
-    onEditTopicClick: (Topic) -> Unit,
-    onDeleteTopicClick: (Topic) -> Unit)
+    onTopicClick: (Int) -> Unit,
+    onEditTopicClick: (Int) -> Unit,
+    onDeleteTopicClick: (Int) -> Unit)
 {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -167,26 +134,31 @@ fun TopicList(
         items(topics) { topic ->
             TopicCard(
                 topic = topic,
-                onClick = { onTopicClick(topic) },
-                onEditClick = { onEditTopicClick(topic) },
-                onDeleteClick = { onDeleteTopicClick(topic) }
+                onClick = { onTopicClick(topic.id) },
+                onEditClick = { onEditTopicClick(topic.id) },
+                onDeleteClick = { onDeleteTopicClick(topic.id) }
             )
         }
     }
 }
 
 @Composable
-fun TopicCard(modifier: Modifier = Modifier, topic: Topic, onClick: () -> Unit, onEditClick: () -> Unit, onDeleteClick: () -> Unit) {
+fun TopicCard(
+    modifier: Modifier = Modifier,
+    topic: Topic, onClick: () -> Unit,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
     ElevatedCard(
+        modifier = modifier
+            .fillMaxWidth(),
         onClick = {
             onClick()
         },
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
+        )
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -226,7 +198,7 @@ fun TopicCard(modifier: Modifier = Modifier, topic: Topic, onClick: () -> Unit, 
             if (!topic.description.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = topic.description ?: "",
+                    text = topic.description,
                     fontSize = 18.sp,
                 )
             }

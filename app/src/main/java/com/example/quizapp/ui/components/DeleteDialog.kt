@@ -17,13 +17,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeleteDialog(text: String, onDismissRequest: () -> Unit, onConfirmRequest: () -> Unit) {
+fun DeleteDialog(
+    dialogHeader: @Composable () -> Unit,
+    onDismissRequest: () -> Unit,
+    onConfirmRequest: () -> Unit
+) {
     BasicAlertDialog(onDismissRequest = onDismissRequest) {
         Surface(
             shape = RoundedCornerShape(16.dp),
@@ -38,12 +40,7 @@ fun DeleteDialog(text: String, onDismissRequest: () -> Unit, onConfirmRequest: (
                     Icons.Filled.Warning,
                     contentDescription = "DeleteQuestionWarning"
                 )
-                Text(
-                    fontSize = 24.sp,
-                    text = text,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+                dialogHeader()
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

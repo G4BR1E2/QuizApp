@@ -47,9 +47,9 @@ fun ChooseQuizTopicTab(
     topics: List<Topic>,
     questions: List<Question>,
     attempts: List<Attempt>,
-    onTopicPlay: (Topic) -> Unit,
+    onTopicPlay: (Int) -> Unit,
     onAddTopic: () -> Unit,
-    onAddQuestion: (Topic) -> Unit
+    onAddQuestion: (Int) -> Unit
 ) {
     TopicList(
         topics = topics,
@@ -67,9 +67,9 @@ fun TopicList(
     questions: List<Question>,
     attempts: List<Attempt>,
     modifier: Modifier = Modifier,
-    onPlayTopicClick: (Topic) -> Unit,
+    onPlayTopicClick: (Int) -> Unit,
     onAddTopicClick: () -> Unit,
-    onAddQuestionClick: (Topic) -> Unit
+    onAddQuestionClick: (Int) -> Unit
 ) {
     if (topics.isEmpty()) {
         Box(
@@ -82,7 +82,7 @@ fun TopicList(
             ) {
                 Text(
                     textAlign = TextAlign.Center,
-                    text = "No topics. Create a topic and its questions to play it."
+                    text = "No topics to play. Create a topic and its questions to play it."
                 )
 
                 Text(
@@ -112,8 +112,8 @@ fun TopicList(
                     topic = topic,
                     numberOfQuestions = numberOfQuestions,
                     bestAttemptPercent = bestAttemptPercent,
-                    onPlayClick = { onPlayTopicClick(topic) },
-                    onAddQuestionClick = { onAddQuestionClick(topic) }
+                    onPlayClick = { onPlayTopicClick(topic.id) },
+                    onAddQuestionClick = { onAddQuestionClick(topic.id) }
                 )
             }
         }
@@ -121,7 +121,10 @@ fun TopicList(
 }
 
 @Composable
-fun TopicTag(modifier: Modifier = Modifier, text: String) {
+fun TopicTag(
+    modifier: Modifier = Modifier,
+    text: String
+) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(6.dp),
@@ -183,6 +186,14 @@ fun TopicCard(
                 }
             }
 
+            if (!topic.description.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = topic.description,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
             FlowRow(
@@ -230,14 +241,6 @@ fun TopicCard(
                         contentDescription = "Add questions to play this topic"
                     )
                 }
-            }
-
-            if (!topic.description.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = topic.description,
-                    style = MaterialTheme.typography.bodyLarge
-                )
             }
         }
     }

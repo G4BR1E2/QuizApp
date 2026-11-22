@@ -11,7 +11,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import com.example.quizapp.data.model.Topic
 import com.example.quizapp.viewmodel.QuizViewModel
 
 enum class QuizTab(val title: String) {
@@ -22,9 +21,10 @@ enum class QuizTab(val title: String) {
 @Composable
 fun MainQuizScreen(
     viewModel: QuizViewModel,
-    onNavigateToQuizPlayScreen: (Topic) -> Unit,
+    onNavigateToQuizPlayScreen: (Int) -> Unit,
     onNavigateToNewTopicDialog: () -> Unit,
-    onNavigateToNewQuestionDialog: (Topic) -> Unit
+    onNavigateToNewQuestionDialog: (Int) -> Unit,
+    onNavigateToAttemptDetailsScreen: (Int) -> Unit
 ) {
     val selectedDestination = rememberSaveable { mutableStateOf(QuizTab.CHOOSE_QUIZ_TOPIC) }
     val topics = viewModel.topics.collectAsState()
@@ -50,13 +50,14 @@ fun MainQuizScreen(
                     topics = topics.value,
                     questions = questions.value,
                     attempts = attempts.value,
-                    onTopicPlay = { topic -> onNavigateToQuizPlayScreen(topic) },
+                    onTopicPlay = { topicId -> onNavigateToQuizPlayScreen(topicId) },
                     onAddTopic = onNavigateToNewTopicDialog,
-                    onAddQuestion = { topic -> onNavigateToNewQuestionDialog(topic) }
+                    onAddQuestion = { topicId -> onNavigateToNewQuestionDialog(topicId) }
                 )
                 QuizTab.QUIZ_ATTEMPTS -> QuizAttemptsTab(
                     attempts = attempts.value,
-                    topics = topics.value
+                    topics = topics.value,
+                    onAttemptDetailsClick = { attemptId -> onNavigateToAttemptDetailsScreen(attemptId) }
                 )
             }
         }
