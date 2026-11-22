@@ -1,7 +1,8 @@
 ## **Quiz app - a modern Android app built with Kotlin and Jetpack Compose**
 
 This project is a mobile Android app that allows you to play quizzes with the topics and questions you create yourself. It also allows you to view your past attempts.
-The app automatically saves the created topics on your device using Room database.
+The app also has input validation when entering or editing topics and questions. 
+After validating your input, the app saves the created topics and questions along with your attempts on your device using Room database.
 It was built in Android Studio using Kotlin and Jetpack Compose, the modern and reccommended way by Android.
 The build system that the project is using is gradle.
 
