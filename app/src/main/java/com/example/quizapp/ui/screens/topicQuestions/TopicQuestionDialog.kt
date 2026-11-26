@@ -23,7 +23,7 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -80,7 +80,6 @@ fun Question.validate(): InvalidQuestionError {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopicQuestionDialog(dialogHeader: @Composable () -> Unit, selectedQuestion: Question? = null, topicId: Int? = null, onDismissRequest: () -> Unit, onConfirmRequest: (Question) -> Unit) {
     val questionTextTextFieldState = rememberTextFieldState(selectedQuestion?.questionText ?: "")
@@ -195,7 +194,6 @@ fun TopicQuestionDialog(dialogHeader: @Composable () -> Unit, selectedQuestion: 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionTypeDropdownMenu(
     selectedType: QuestionType,
@@ -338,10 +336,11 @@ fun MultipleChoiceQuestion(
     )
 
     val choiceError = errors.questionOptionsError ?: errors.questionAnswerError
-    if (choiceError != null)
-    Text(
-        text = choiceError,
-        color = MaterialTheme.colorScheme.error,
-        style = MaterialTheme.typography.bodyLarge
-    )
+    if (choiceError != null) {
+        Text(
+            text = choiceError,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
 }

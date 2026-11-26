@@ -1,10 +1,14 @@
 package com.example.quizapp.ui.screens.topicQuestions
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,34 +19,43 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.RadioButtonChecked
+import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FlexibleBottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,8 +63,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.quizapp.data.model.Question
 import com.example.quizapp.ui.components.DeleteDialog
 import com.example.quizapp.viewmodel.QuizViewModel
@@ -66,80 +81,180 @@ fun TopicQuestionsScreen(
     onNavigateToEditQuestionDialog: (questionId: Int) -> Unit
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val questions by viewModel.questions.collectAsState()
-    val topics = viewModel.topics.collectAsState()
-    val topic = topics.value.find { it.id == topicId }
+    val questions by viewModel.questions.collectAsStateWithLifecycle()
+    val topics by viewModel.topics.collectAsStateWithLifecycle()
 
-    var isOpenDeleteQuestionDialog by rememberSaveable { mutableStateOf(false) }
-    var selectedQuestionId = rememberSaveable { -1 }
+    val topic = remember(topics, topicId) { topics.find { it.id == topicId } }
+    val topicQuestions = remember(questions, topicId) { questions.filter { it.topicId == topicId } }
+
+    var selectedQuestionId by rememberSaveable { mutableStateOf<Int?>(null) }
+
+    var isEnabledEditMode by rememberSaveable { mutableStateOf(false) }
+    val selectedQuestionIds = rememberSaveable { mutableStateSetOf<Int>() }
+    var isOpenDeleteQuestionsDialog by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(),
         topBar = {
             TopicQuestionsTopAppBar(
-                topicName = topic?.name ?: "",
+                title = {
+                    Text(
+                        text =
+                            if (isEnabledEditMode)
+                                when {
+                                    selectedQuestionIds.isEmpty() -> "Select questions"
+                                    else -> "Selected questions: ${selectedQuestionIds.count()}"
+                                }
+                            else { topic?.name ?: "" }
+                    )
+                },
                 scrollBehavior = scrollBehavior,
-                onBackClick = onTopAppBarBackClick
+                onBackClick = onTopAppBarBackClick,
+                isEnabledEditMode = isEnabledEditMode,
+                onCancelEditClick = {
+                    selectedQuestionIds.clear()
+                    isEnabledEditMode = false
+                }
             )
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                modifier = Modifier,
-                onClick = { onNavigateToNewQuestionDialog(topicId) },
-                icon = { Icon(Icons.Filled.Add, "Add topic")},
-                text = { Text("Add question") }
-            )
+        bottomBar = {
+            AnimatedContent(
+                targetState = isEnabledEditMode,
+            ) { isEditMode ->
+                when (isEditMode) {
+                    true -> {
+                        TopicQuestionsBottomAppBar(
+                            buttonEnabled = selectedQuestionIds.isNotEmpty(),
+                            onDeleteClick = { isOpenDeleteQuestionsDialog = true }
+                        )
+                    }
+                    false -> {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(end = 20.dp, bottom = 20.dp),
+                            contentAlignment = Alignment.BottomEnd
+                        ) {
+                            ExtendedFloatingActionButton(
+                                onClick = { onNavigateToNewQuestionDialog(topicId) },
+                                icon = { Icon(Icons.Filled.Add, "Add topic")},
+                                text = { Text("Add question") }
+                            )
+                        }
+                    }
+                }
+            }
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ) { padding ->
-        QuestionList(
-            topicId = topicId,
-            questions = questions,
-            modifier = Modifier.padding(padding),
-            onEditQuestionClick = { questionId -> onNavigateToEditQuestionDialog(questionId) },
-            onDeleteQuestionClick = {
-                questionId -> selectedQuestionId = questionId
-                isOpenDeleteQuestionDialog = true
+        if (topicQuestions.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    modifier = Modifier.padding(20.dp),
+                    text = "No questions yet. Add a question to get started.",
+                    textAlign = TextAlign.Center
+                )
             }
-        )
-
-        if (isOpenDeleteQuestionDialog) {
-            DeleteQuestionDialog(
-                onDismissRequest = { isOpenDeleteQuestionDialog = false },
-                onConfirmRequest = {
-                    viewModel.deleteQuestion(questions.find { it.id == selectedQuestionId })
-                    isOpenDeleteQuestionDialog = false
+        }
+        else {
+            QuestionList(
+                selectedQuestionIds = selectedQuestionIds.toSet(),
+                questions = topicQuestions,
+                modifier = Modifier.padding(padding),
+                onEditQuestionClick = { questionId -> onNavigateToEditQuestionDialog(questionId) },
+                onDeleteQuestionClick = {
+                        questionId -> selectedQuestionId = questionId
+                },
+                onLongQuestionClick = { questionId ->
+                    if (isEnabledEditMode) { selectedQuestionIds.clear() }
+                    else { selectedQuestionIds.add(questionId) }
+                    isEnabledEditMode = !isEnabledEditMode
+                },
+                isEditMode = isEnabledEditMode,
+                onCheckedChanged = { questionId ->
+                    if (questionId in selectedQuestionIds) { selectedQuestionIds.remove(questionId) }
+                    else { selectedQuestionIds.add(questionId) }
                 }
             )
+        }
+
+
+        if (selectedQuestionId != null) {
+            DeleteDialog(
+                dialogHeader = {
+                    Text(
+                        fontSize = 24.sp,
+                        text = "Are you sure you want to delete this question?",
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                },
+                onDismissRequest = { selectedQuestionId = null},
+                onConfirmRequest = {
+                    viewModel.deleteQuestion(topicQuestions.find { it.id == selectedQuestionId })
+                    selectedQuestionId = null
+                }
+            )
+        }
+
+        if (isOpenDeleteQuestionsDialog) {
+            DeleteDialog(
+                dialogHeader = {
+                    Text(
+                        text = "Are you sure you want to delete ${selectedQuestionIds.count()} ${if (selectedQuestionIds.count() == 1) "question" else "Questions"}?"
+                    )
+                },
+                onDismissRequest = { isOpenDeleteQuestionsDialog = false },
+                onConfirmRequest = {
+                    viewModel.deleteQuestions(selectedQuestionIds.toList())
+                    selectedQuestionIds.clear()
+                    isOpenDeleteQuestionsDialog = false
+                    isEnabledEditMode = false
+                }
+            )
+        }
+    }
+
+    BackHandler(enabled = isEnabledEditMode) {
+        selectedQuestionIds.clear()
+        isEnabledEditMode = false
+    }
+}
+
+@Composable
+fun TopicQuestionsBottomAppBar(
+    buttonEnabled: Boolean,
+    onDeleteClick: () -> Unit
+) {
+    FlexibleBottomAppBar(
+        horizontalArrangement = BottomAppBarDefaults.FlexibleFixedHorizontalArrangement,
+        windowInsets = WindowInsets()
+    ) {
+        TextButton(
+            enabled = buttonEnabled,
+            onClick = onDeleteClick
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(imageVector = Icons.Filled.Delete, contentDescription = "Delete selected questions")
+                Text("Delete")
+            }
         }
     }
 }
 
 @Composable
-fun DeleteQuestionDialog(
-    onDismissRequest: () -> Unit,
-    onConfirmRequest: () -> Unit
-) {
-    DeleteDialog(
-        dialogHeader = {
-            Text(
-                fontSize = 24.sp,
-                text = "Are you sure you want to delete this question?",
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-        },
-        onDismissRequest = onDismissRequest,
-        onConfirmRequest = onConfirmRequest
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun TopicQuestionsTopAppBar(
-    topicName: String,
+    title: @Composable () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    isEnabledEditMode: Boolean,
+    onCancelEditClick: () -> Unit
 ) {
     CenterAlignedTopAppBar(
         modifier = Modifier,
@@ -147,16 +262,27 @@ fun TopicQuestionsTopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
-        title = {
-            Text(text = topicName)
-        },
+        title = title,
         navigationIcon = {
-            IconButton(
-                onClick = onBackClick
+            AnimatedVisibility(
+                visible = !isEnabledEditMode,
+                enter = fadeIn(),
+                exit = fadeOut()
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back button")
+                IconButton(onClick = onBackClick) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back button")
+                }
             }
-        }
+            AnimatedVisibility(
+                visible = isEnabledEditMode,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                IconButton(onClick = onCancelEditClick) {
+                    Icon(Icons.Filled.Cancel, contentDescription = "Quiz edit mode button")
+                }
+            }
+        },
     )
 }
 
@@ -164,19 +290,34 @@ fun TopicQuestionsTopAppBar(
 fun QuestionList(
     questions: List<Question>,
     modifier: Modifier = Modifier,
-    topicId: Int,
+    selectedQuestionIds: Set<Int>,
     onEditQuestionClick: (Int) -> Unit,
-    onDeleteQuestionClick: (Int) -> Unit
+    onDeleteQuestionClick: (Int) -> Unit,
+    onLongQuestionClick: (Int) -> Unit,
+    isEditMode: Boolean,
+    onCheckedChanged: (Int) -> Unit
 ) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(questions.maxOf { it.id }) {
+        listState.animateScrollToItem(0)
+    }
+
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(10.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .padding(10.dp),
+        state = listState,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        items(questions.filter { it.topicId == topicId }) { question ->
+        items(questions) { question ->
             QuestionCard(
                 question = question,
                 onEditClick = { onEditQuestionClick(question.id) },
-                onDeleteClick = { onDeleteQuestionClick(question.id) }
+                onDeleteClick = { onDeleteQuestionClick(question.id) },
+                onLongClick = { onLongQuestionClick(question.id) },
+                isEditMode = isEditMode,
+                isChecked = question.id in selectedQuestionIds,
+                onCheckChanged = { onCheckedChanged(question.id) }
             )
         }
     }
@@ -186,17 +327,26 @@ fun QuestionList(
 fun QuestionCard(
     question: Question,
     onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onLongClick: () -> Unit,
+    isEditMode: Boolean,
+    isChecked: Boolean,
+    onCheckChanged: () -> Unit
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    val arrowRoatation = animateFloatAsState(
+    var expanded by rememberSaveable(isEditMode) { mutableStateOf(false) }
+    val arrowRotation = animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
     )
 
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = {expanded = !expanded}),
+            .combinedClickable(
+                onClick = {
+                    if (!isEditMode) expanded = !expanded else onCheckChanged()
+                },
+                onLongClick = onLongClick
+            ),
         shape = RoundedCornerShape(10.dp),
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.elevatedCardColors(
@@ -208,32 +358,46 @@ fun QuestionCard(
                 modifier = Modifier.padding(top = 4.dp, bottom = 10.dp, start = 10.dp, end = 10.dp),
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        Icons.Filled.QuestionMark,
-                        contentDescription = "Question"
-                    )
-                    Row() {
-                        IconButton(
-                            onClick = onEditClick,
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Icon(
-                                Icons.Filled.Edit,
-                                contentDescription = "EditQuestionIcon",
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AnimatedVisibility(isEditMode) {
+                            Checkbox(
+                                modifier = Modifier.requiredSize(24.dp),
+                                checked = isChecked,
+                                onCheckedChange = { onCheckChanged() }
                             )
                         }
-                        IconButton(
-                            onClick = onDeleteClick,
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Icon(
-                                Icons.Filled.Delete,
-                                contentDescription = "DeleteQuestionIcon",
-                            )
+                        Icon(
+                            imageVector = Icons.Filled.QuestionMark,
+                            contentDescription = "Question"
+                        )
+                    }
+
+                    AnimatedVisibility(!isEditMode) {
+                        Row() {
+                            IconButton(
+                                onClick = onEditClick,
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.Edit,
+                                    contentDescription = "EditQuestionIcon",
+                                )
+                            }
+                            IconButton(
+                                onClick = onDeleteClick,
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = "DeleteQuestionIcon",
+                                )
+                            }
                         }
                     }
                 }
@@ -245,7 +409,7 @@ fun QuestionCard(
                 )
 
                 AnimatedVisibility(
-                    visible = expanded,
+                    visible = expanded && !isEditMode,
                     enter = expandVertically(expandFrom = Alignment.Top),
                     exit = shrinkVertically(shrinkTowards = Alignment.Top)
                 ) {
@@ -294,7 +458,9 @@ fun QuestionCard(
             }
 
             Icon(
-                modifier = Modifier.align(Alignment.BottomCenter).rotate(arrowRoatation.value),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .rotate(arrowRotation.value),
                 imageVector = Icons.Filled.ArrowDropDown,
                 contentDescription = "Drop down arrow"
             )

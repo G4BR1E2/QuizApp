@@ -10,11 +10,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface QuestionDao {
-    @Query("SELECT * FROM Question ORDER BY id ASC")
+    @Query("SELECT * FROM Question ORDER BY id DESC")
     fun getAllQuestions(): Flow<List<Question>>
 
     @Query("SELECT * FROM Question WHERE topicId = :topicId")
     fun getQuestionsForTopic(topicId: Int): Flow<List<Question>>
+
+    @Query("DELETE FROM Question WHERE id IN (:questionIds)")
+    suspend fun deleteQuestions(questionIds: List<Int>)
 
     @Insert
     suspend fun insertQuestion(question: Question)

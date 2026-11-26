@@ -86,6 +86,14 @@ class QuizViewModel(val quizDatabase: QuizDatabase) : ViewModel() {
             }
     }
 
+    fun deleteQuestions(questionIds: List<Int>) {
+        if (questionIds.isNotEmpty()) {
+            viewModelScope.launch {
+                questionDao.deleteQuestions(questionIds)
+            }
+        }
+    }
+
     fun addAttempt(
         topicId: Int,
         questionToAttempt: Map<Int, String>,

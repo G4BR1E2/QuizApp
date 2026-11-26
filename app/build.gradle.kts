@@ -40,6 +40,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.material3)
     val nav_version = "2.10.2"
 
     implementation(libs.room.runtime)
